@@ -942,7 +942,7 @@ class Scheduler(object):
             # batch running tasks that weren't claimed since the last get_work go back in the pool
             # self._reset_orphaned_batch_running_tasks(worker_id)
 
-        all_tasks = list(self._state.get_active_tasks())
+        all_tasks = self._state.get_active_tasks()
 
         batched_params, unbatched_params, batched_tasks, max_batch_size = None, None, [], 1
         best_task = None
@@ -1217,8 +1217,7 @@ class Scheduler(object):
         """
         Query for a subset of tasks by status.
         """
-
-        all_tasks = list(self._state.get_active_tasks())
+        all_tasks = self._state.get_active_tasks()
         status_tasks = filter(lambda t: t.status == status, all_tasks)
 
         if not search:
@@ -1226,6 +1225,7 @@ class Scheduler(object):
             pre_count = len(status_tasks)
             if limit and pre_count > count_limit:
                 return {'num_tasks': -1 if upstream_status else pre_count}
+
         # self.prune()
 
         result = {}

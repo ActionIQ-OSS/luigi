@@ -273,8 +273,9 @@ class SchedulerState(object):
         for task in self.get_active_tasks():
             if remove_stakeholders:
                 task.stakeholders.difference_update(workers)
-            task.workers -= workers
-            self.persist_task(task)
+            if any(w in task.workers for w in workers):
+                task.workers -= workers
+                self.persist_task(task)
 
     def disable_workers(self, worker_ids):
         self._remove_workers_from_tasks(worker_ids, remove_stakeholders=False)
@@ -290,8 +291,8 @@ class DBTask(Base):
     """
     __tablename__ = 'luigi_task_state'
 
-    task_id = Column(String(255), primary_key=True)
-    status = Column(String(100))
+    task_id = Column(String(255), primary_key=True, index=True)
+    status = Column(String(100), index=True)
     pickled = Column(String(10000))
 
 
@@ -375,14 +376,14 @@ class SqlSchedulerState(SchedulerState):
         return task
 
     def inactivate_tasks(self, delete_tasks):
-        for task in delete_tasks:
+        for task_id in delete_tasks:
             session = self.session()
-            db_task = session.query(DBTask).filter(DBTask.task_id == task.id).first()
+            db_task = session.query(DBTask).filter(DBTask.task_id == task_id).first()
             if db_task:
                 session.delete(db_task)
                 session.commit()
             else:
-                logger.warn("Tried to inactivate task that doesn't exist: {}".format(task))
+                logger.warn("Tried to inactivate task that doesn't exist: {}".format(task_id))
             session.close()
 
     def get_active_workers(self, last_active_lt=None, last_get_work_gt=None):
@@ -390,8 +391,7 @@ class SqlSchedulerState(SchedulerState):
             if last_active_lt is not None and worker.last_active >= last_active_lt:
                 continue
             last_get_work = worker.last_get_work
-            if last_get_work_gt is not None and (
-                            last_get_work is None or last_get_work <= last_get_work_gt):
+            if last_get_work_gt is not None and (last_get_work is None or last_get_work <= last_get_work_gt):
                 continue
             yield worker
 

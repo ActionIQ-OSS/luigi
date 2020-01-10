@@ -938,9 +938,10 @@ class Scheduler(object):
         if assistant:
             self.add_worker(worker_id, [('assistant', assistant)])
 
-        if current_tasks is not None:
-            # batch running tasks that weren't claimed since the last get_work go back in the pool
-            self._reset_orphaned_batch_running_tasks(worker_id)
+        # Disabled at AIQ since we don't use batch running tasks
+        # if current_tasks is not None:
+        #     # batch running tasks that weren't claimed since the last get_work go back in the pool
+        #     self._reset_orphaned_batch_running_tasks(worker_id)
 
         all_tasks = self._state.get_active_tasks()
 
@@ -1226,7 +1227,8 @@ class Scheduler(object):
             pre_count = len(status_tasks)
             if limit and pre_count > count_limit:
                 return {'num_tasks': -1 if upstream_status else pre_count}
-        self.prune()
+
+        # self.prune()
 
         result = {}
         upstream_status_table = {}  # used to memoize upstream status

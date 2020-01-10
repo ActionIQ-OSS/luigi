@@ -331,13 +331,13 @@ class SqlSchedulerState(SchedulerState):
         session = self.session()
         db_res = session.query(DBTask).all()
         session.close()
-        return itertools.ifilter(lambda t: t, (self._try_unpickle(t) for t in db_res))
+        return filter(lambda t: t, (self._try_unpickle(t) for t in db_res))
 
     def get_active_tasks_by_status(self, *statuses):
         session = self.session()
         db_res = session.query(DBTask).filter(DBTask.status.in_(statuses)).all()
         session.close()
-        return itertools.ifilter(lambda t: t, (self._try_unpickle(t) for t in db_res))
+        return filter(lambda t: t, (self._try_unpickle(t) for t in db_res))
 
     def set_batcher(self, worker_id, family, batcher_args, max_batch_size):
         self._task_batchers.setdefault(worker_id, {})

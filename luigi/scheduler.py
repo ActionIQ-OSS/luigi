@@ -939,8 +939,8 @@ class Scheduler(object):
 
         # Disabled at AIQ since we don't use batch running tasks
         # if current_tasks is not None:
-        #     # batch running tasks that weren't claimed since the last get_work go back in the pool
-        #     self._reset_orphaned_batch_running_tasks(worker_id)
+            # batch running tasks that weren't claimed since the last get_work go back in the pool
+            # self._reset_orphaned_batch_running_tasks(worker_id)
 
         all_tasks = self._state.get_active_tasks()
 
@@ -1217,7 +1217,6 @@ class Scheduler(object):
         """
         Query for a subset of tasks by status.
         """
-
         all_tasks = self._state.get_active_tasks()
         status_tasks = filter(lambda t: t.status == status, all_tasks)
 

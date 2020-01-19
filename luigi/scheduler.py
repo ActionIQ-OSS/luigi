@@ -371,6 +371,7 @@ class Task(object):
         in_progress = self.__dict__.copy()
 
         # These are sets => not JSON serializable, must turn into lists first
+        # FIXME
         in_progress['stakeholders'] = [] # list(self.stakeholders)
         in_progress['deps'] = [] # list(self.deps)
         in_progress['retry_policy'] = self.retry_policy._asdict()
@@ -401,7 +402,7 @@ class Task(object):
     @staticmethod
     def from_json(json_str):
         loaded = json.loads(json_str)
-        my_task = Task(None, None, None)
+        my_task = Task(None, None, None, retry_policy=_get_empty_retry_policy())
         my_task.__dict__ = loaded
         my_task['stakeholders'] = set(loaded['stakeholders'])
         my_task['deps'] = set(loaded['deps'])

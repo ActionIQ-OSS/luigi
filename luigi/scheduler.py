@@ -184,7 +184,7 @@ class Failures(object):
             "failures": list(self.failures),
             "first_failure_time": self.first_failure_time
         }
-        return json.dumps(my_dict)
+        return my_dict
 
     @staticmethod
     def from_json(json_str):
@@ -231,6 +231,14 @@ def _get_default(x, default):
         return default
 
 
+class ComplexEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if hasattr(obj,'to_json'):
+            return obj.to_json()
+        else:
+            return json.JSONEncoder.default(self, obj)
+
+
 class OrderedSet(MutableSet):
     """
     Standard Python OrderedSet recipe found at http://code.activestate.com/recipes/576694/
@@ -248,7 +256,7 @@ class OrderedSet(MutableSet):
     def to_json(self):
         my_dict = {"end": self.end, "map": self.map}
         logger.info("brandon help: " + str(my_dict))
-        return json.dumps(my_dict)
+        return my_dict
 
     @staticmethod
     def from_json(json_str):
@@ -359,11 +367,11 @@ class Task(object):
         in_progress['stakeholders'] = list(self.stakeholders)
         in_progress['deps'] = list(self.deps)
 
-        # These are custom objects => each implements their own to_json()
-        in_progress['workers'] = self.workers.to_json()
-        in_progress['failures'] = self.failures.to_json()
+        # # These are custom objects => each implements their own to_json()
+        # in_progress['workers'] = self.workers.to_json()
+        # in_progress['failures'] = json.dumps(self.failures.to_json())
 
-        return json.dumps(in_progress)
+        return json.dumps(in_progress, cls=ComplexEncoder)
 
     @staticmethod
     def from_json(json_str):

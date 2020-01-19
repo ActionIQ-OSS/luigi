@@ -381,7 +381,15 @@ class Task(object):
         # in_progress['workers'] = self.workers.to_json()
         # in_progress['failures'] = json.dumps(self.failures.to_json())
 
-        logger.info("PICKLE DUMP SELF TASK: " + pickle.dumps(self))
+        # logger.info("PICKLE DUMP SELF TASK: " + pickle.dumps(self))
+
+        for k, v in self.__dict__.items():
+            try:
+                logger.info("trying {}...".format(k))
+                logger.info(json.dumps(v, cls=ComplexEncoder))
+            except:
+                logger.info("FAILED")
+
         return json.dumps(in_progress, cls=ComplexEncoder, default=view_dict)
 
     @staticmethod

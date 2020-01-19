@@ -371,8 +371,8 @@ class Task(object):
         in_progress = self.__dict__.copy()
 
         # These are sets => not JSON serializable, must turn into lists first
-        in_progress['stakeholders'] = None # list(self.stakeholders)
-        in_progress['deps'] = None # list(self.deps)
+        in_progress['stakeholders'] = [] # list(self.stakeholders)
+        in_progress['deps'] = [] # list(self.deps)
         in_progress['retry_policy'] = self.retry_policy._asdict()
 
         # for x in in_progress['stakeholders']:
@@ -387,18 +387,28 @@ class Task(object):
 
         # logger.info("PICKLE DUMP SELF TASK: " + pickle.dumps(self))
 
-        for k, v in self.__dict__.items():
-            try:
-                logger.info("trying {}...".format(k))
-                logger.info(json.dumps(v, cls=ComplexEncoder))
-            except:
-                logger.info("FAILED")
+        # for k, v in self.__dict__.items():
+        #     try:
+        #         logger.info("trying {}...".format(k))
+        #         logger.info(json.dumps(v, cls=ComplexEncoder))
+        #     except:
+        #         logger.info("FAILED")
 
-        return json.dumps(in_progress, cls=ComplexEncoder)
+        ret = json.dumps(in_progress, cls=ComplexEncoder)
+        logger.info(Task.from_json(ret))
+        return ret
 
     @staticmethod
     def from_json(json_str):
-        pass
+        loaded = json.loads(json_str)
+        my_task = Task(None, None, None)
+        my_task.__dict__ = loaded
+        my_task['stakeholders'] = set(loaded['stakeholders'])
+        my_task['deps'] = set(loaded['deps'])
+        my_task['retry_policy'] = RetryPolicy(**loaded['retry_policy'])
+        my_task['workers'] = OrderedSet.from_json(loaded['workers'])
+        my_task['failures'] = Failures.from_json(loaded['failures'])
+        return my_task
 
     def __repr__(self):
         return "Task(%r)" % vars(self)

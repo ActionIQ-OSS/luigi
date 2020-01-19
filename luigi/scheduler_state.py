@@ -12,7 +12,7 @@ except ImportError:
 
 from luigi import six
 from luigi import notifications
-from luigi.scheduler import Worker
+from luigi.scheduler import Worker, Task
 from luigi.task_status import DISABLED, DONE, FAILED, PENDING, RUNNING, BATCH_RUNNING
 
 from sqlalchemy.ext.declarative import declarative_base
@@ -322,7 +322,7 @@ class SqlSchedulerState(SchedulerState):
 
     def _try_unpickle(self, db_task):
         try:
-            return pickle.loads(db_task.pickled)
+            return Task.from_json(db_task.pickled)
         except (pickle.UnpicklingError,EOFError) as e:
             logger.warning("Warning, unable to de-pickle task {}".format(db_task.task_id))
             return None
@@ -363,12 +363,12 @@ class SqlSchedulerState(SchedulerState):
         db_task = session.query(DBTask).filter(DBTask.task_id == task.id).first()
         if db_task:
             db_task.status = task.status
-            db_task.pickled = pickle.dumps(task, protocol=2)
+            db_task.pickled = task.to_json()
         else:
             new_task = DBTask(
                 task_id=task.id,
                 status=task.status,
-                pickled=pickle.dumps(task, protocol=2)
+                pickled=task.to_json()
             )
             session.add(new_task)
         session.commit()

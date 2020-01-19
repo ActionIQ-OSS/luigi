@@ -335,7 +335,7 @@ class Task(object):
                  progress_percentage=None, retry_policy='notoptional'):
         self.id = task_id
         self.stakeholders = set()  # workers ids that are somehow related to this task (i.e. don't prune while any of these workers are still active)
-        #self.workers = OrderedSet()  # workers ids that can perform task - task is 'BROKEN' if none of these workers are active
+        self.workers = OrderedSet()  # workers ids that can perform task - task is 'BROKEN' if none of these workers are active
         if deps is None:
             self.deps = set()
         else:
@@ -359,7 +359,7 @@ class Task(object):
         self.set_params(params)
         self.accepts_messages = accepts_messages
         self.retry_policy = retry_policy
-        #self.failures = Failures(self.retry_policy.disable_window)
+        self.failures = Failures(self.retry_policy.disable_window)
         self.tracking_url = tracking_url
         self.status_message = status_message
         self.progress_percentage = progress_percentage

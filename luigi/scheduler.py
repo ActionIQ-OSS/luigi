@@ -368,7 +368,6 @@ class Task(object):
     def from_json(json_str):
         pass
 
-
     def __repr__(self):
         return "Task(%r)" % vars(self)
 
@@ -1292,6 +1291,7 @@ class Scheduler(object):
         task_dict = {t.id : t for t in all_tasks}
 
         for task in filter(filter_func, tasks):
+            logger.info(task.to_json())
             if task.status != PENDING or \
                not upstream_status or \
                upstream_status == self._upstream_status(task.id, upstream_status_table, task_dict):

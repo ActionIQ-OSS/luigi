@@ -375,6 +375,7 @@ class Task(object):
         # These are sets => not JSON serializable, must turn into lists first
         in_progress['stakeholders'] = list(self.stakeholders)
         in_progress['deps'] = list(self.deps)
+        in_progress['retry_policy'] = self.retry_policy._asdict()
 
         # # These are custom objects => each implements their own to_json()
         # in_progress['workers'] = self.workers.to_json()

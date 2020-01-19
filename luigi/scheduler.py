@@ -403,6 +403,11 @@ class Task(object):
     def from_json(json_str):
         loaded = json.loads(json_str)
         my_task = Task(None, None, None, retry_policy=_get_empty_retry_policy())
+
+        logger.info("LOADING FROM JSON")
+        logger.info(loaded['workers'])
+        logger.info(loaded['failures'])
+
         my_task.__dict__ = loaded
         my_task.stakeholders = set(loaded['stakeholders'])
         my_task.deps = set(loaded['deps'])

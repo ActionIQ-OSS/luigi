@@ -381,7 +381,7 @@ class Task(object):
         # in_progress['workers'] = self.workers.to_json()
         # in_progress['failures'] = json.dumps(self.failures.to_json())
 
-        #logger.info("PICKLE DUMP SELF TASK: " + pickle.dumps(self))
+        logger.info("PICKLE DUMP SELF TASK: " + pickle.dumps(self))
         return json.dumps(in_progress, cls=ComplexEncoder, default=view_dict)
 
     @staticmethod

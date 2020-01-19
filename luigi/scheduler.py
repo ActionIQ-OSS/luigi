@@ -178,6 +178,23 @@ class Failures(object):
         self.failures = collections.deque()
         self.first_failure_time = None
 
+    def to_json(self):
+        my_dict = {
+            "window": self.window,
+            "failures": list(self.failures)
+            "first_failure_time": self.first_failure_time
+        }
+        return json.dumps(my_dict)
+
+    @staticmethod
+    def from_json(json_str):
+        my_dict = json.loads(json_str)
+        new_self = Failures(None)
+        new_self.window = my_dict['window']
+        new_self.failures = collections.deque(my_dict['failures'])
+        new_self.first_failure_time = my_dict['first_failure_time']
+        return new_self
+
     def add_failure(self):
         """
         Add a failure event with the current timestamp.
@@ -227,6 +244,18 @@ class OrderedSet(MutableSet):
         self.map = {}                   # key --> [key, prev, next]
         if iterable is not None:
             self |= iterable
+
+    def to_json(self):
+        my_dict = {"end": self.end, "map": self.map}
+        return json.dumps(my_dict)
+
+    @staticmethod
+    def from_json(json_str):
+        my_dict = json.loads(json_str)
+        new_self = OrderedSet()
+        new_self.map = my_dict['map']
+        new_self.end = my_dict['end']
+        return new_self
 
     def __len__(self):
         return len(self.map)
@@ -321,6 +350,24 @@ class Task(object):
         self.runnable = False
         self.batchable = False
         self.batch_id = None
+
+    def to_json(self):
+        in_progress = self.__dict__.copy()
+
+        # These are sets => not JSON serializable, must turn into lists first
+        in_progress['stakeholders'] = list(self.stakeholders)
+        in_progress['deps'] = list(self.deps)
+
+        # These are custom objects => each implements their own to_json()
+        in_progress['workers'] = self.workers.to_json()
+        in_progress['failures'] = self.failures.to_json()
+
+        return json.dumps(in_progress)
+
+    @staticmethod
+    def from_json(json_str):
+        pass
+
 
     def __repr__(self):
         return "Task(%r)" % vars(self)

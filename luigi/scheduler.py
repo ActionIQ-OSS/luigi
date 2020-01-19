@@ -188,7 +188,6 @@ class Failures(object):
         self.first_failure_time = None
 
     def to_json(self):
-        logger.info("PICKLE DUMP SELF: " + pickle.dumps(self))
         my_dict = {
             "window": self.window,
             "failures": list(self.failures),
@@ -266,7 +265,6 @@ class OrderedSet(MutableSet):
     def to_json(self):
         # my_dict = {"end": self.end, "map": self.map}
         # logger.info("brandon help: " + str(my_dict))
-        logger.info("PICKLE DUMP SELF: " + pickle.dumps(self))
         return [x.to_json() if hasattr(x, 'to_json') else x for x in self]
 
     @staticmethod
@@ -376,6 +374,12 @@ class Task(object):
         in_progress['stakeholders'] = list(self.stakeholders)
         in_progress['deps'] = list(self.deps)
         in_progress['retry_policy'] = self.retry_policy._asdict()
+
+        for x in in_progress['stakeholders']:
+            logger.info(str(type(x) + ": " + str(x)))
+
+        for x in in_progress['deps']:
+            logger.info(str(type(x) + ": " + str(x)))
 
         # # These are custom objects => each implements their own to_json()
         # in_progress['workers'] = self.workers.to_json()

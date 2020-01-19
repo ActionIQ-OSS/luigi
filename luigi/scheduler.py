@@ -376,10 +376,10 @@ class Task(object):
         in_progress['retry_policy'] = self.retry_policy._asdict()
 
         for x in in_progress['stakeholders']:
-            logger.info(str(type(x) + ": " + str(x)))
+            logger.info(str(type(x)) + ": " + str(x))
 
         for x in in_progress['deps']:
-            logger.info(str(type(x) + ": " + str(x)))
+            logger.info(str(type(x)) + ": " + str(x))
 
         # # These are custom objects => each implements their own to_json()
         # in_progress['workers'] = self.workers.to_json()

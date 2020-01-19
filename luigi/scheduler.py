@@ -262,16 +262,14 @@ class OrderedSet(MutableSet):
             self |= iterable
 
     def to_json(self):
-        my_dict = {"end": self.end, "map": self.map}
-        logger.info("brandon help: " + str(my_dict))
-        return my_dict
+        # my_dict = {"end": self.end, "map": self.map}
+        # logger.info("brandon help: " + str(my_dict))
+        return list(self)
 
     @staticmethod
     def from_json(json_str):
-        my_dict = json.loads(json_str)
-        new_self = OrderedSet()
-        new_self.map = my_dict['map']
-        new_self.end = my_dict['end']
+        my_list = json.loads(json_str)
+        new_self = OrderedSet(iterable=my_list)
         return new_self
 
     def __len__(self):

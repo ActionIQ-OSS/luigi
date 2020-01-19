@@ -404,11 +404,11 @@ class Task(object):
         loaded = json.loads(json_str)
         my_task = Task(None, None, None, retry_policy=_get_empty_retry_policy())
         my_task.__dict__ = loaded
-        my_task['stakeholders'] = set(loaded['stakeholders'])
-        my_task['deps'] = set(loaded['deps'])
-        my_task['retry_policy'] = RetryPolicy(**loaded['retry_policy'])
-        my_task['workers'] = OrderedSet.from_json(loaded['workers'])
-        my_task['failures'] = Failures.from_json(loaded['failures'])
+        my_task.stakeholders = set(loaded['stakeholders'])
+        my_task.deps = set(loaded['deps'])
+        my_task.retry_policy = RetryPolicy(**loaded['retry_policy'])
+        my_task.workers = OrderedSet.from_json(loaded['workers'])
+        my_task.failures = Failures.from_json(loaded['failures'])
         return my_task
 
     def __repr__(self):

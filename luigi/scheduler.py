@@ -181,7 +181,7 @@ class Failures(object):
     def to_json(self):
         my_dict = {
             "window": self.window,
-            "failures": list(self.failures)
+            "failures": list(self.failures),
             "first_failure_time": self.first_failure_time
         }
         return json.dumps(my_dict)

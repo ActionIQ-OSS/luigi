@@ -247,6 +247,7 @@ class OrderedSet(MutableSet):
 
     def to_json(self):
         my_dict = {"end": self.end, "map": self.map}
+        print("brandon help: " + str(my_dict))
         return json.dumps(my_dict)
 
     @staticmethod

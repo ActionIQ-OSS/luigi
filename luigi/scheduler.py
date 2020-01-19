@@ -371,15 +371,15 @@ class Task(object):
         in_progress = self.__dict__.copy()
 
         # These are sets => not JSON serializable, must turn into lists first
-        in_progress['stakeholders'] = list(self.stakeholders)
-        in_progress['deps'] = list(self.deps)
+        in_progress['stakeholders'] = None # list(self.stakeholders)
+        in_progress['deps'] = None # list(self.deps)
         in_progress['retry_policy'] = self.retry_policy._asdict()
 
-        for x in in_progress['stakeholders']:
-            logger.info(str(type(x)) + ": " + str(x))
+        # for x in in_progress['stakeholders']:
+        #     logger.info(str(type(x)) + ": " + str(x))
 
-        for x in in_progress['deps']:
-            logger.info(str(type(x)) + ": " + str(x))
+        # for x in in_progress['deps']:
+        #     logger.info(str(type(x)) + ": " + str(x))
 
         # # These are custom objects => each implements their own to_json()
         # in_progress['workers'] = self.workers.to_json()
@@ -394,7 +394,7 @@ class Task(object):
             except:
                 logger.info("FAILED")
 
-        return json.dumps(in_progress, cls=ComplexEncoder, default=view_dict)
+        return json.dumps(in_progress, cls=ComplexEncoder)
 
     @staticmethod
     def from_json(json_str):

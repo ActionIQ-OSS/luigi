@@ -160,6 +160,14 @@ class scheduler(Config):
         return RetryPolicy(self.retry_count, self.disable_hard_timeout, self.disable_window)
 
 
+def view_dict(obj):
+    logger.info('--------------')
+    logger.info('Type:' + str(obj.__class__))
+    d = obj.__dict__
+    logger.info(d)
+    return d
+
+
 class Failures(object):
     """
     This class tracks the number of failures in a given time window.
@@ -371,7 +379,7 @@ class Task(object):
         # in_progress['workers'] = self.workers.to_json()
         # in_progress['failures'] = json.dumps(self.failures.to_json())
 
-        return json.dumps(in_progress, cls=ComplexEncoder)
+        return json.dumps(in_progress, cls=ComplexEncoder, default=view_dict)
 
     @staticmethod
     def from_json(json_str):

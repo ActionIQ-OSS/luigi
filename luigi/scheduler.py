@@ -394,8 +394,8 @@ class Task(object):
         #         logger.info("FAILED")
 
         ret = json.dumps(in_progress, cls=ComplexEncoder)
-        logger.info(Task.from_json(ret).__dict__)
-        logger.info(self.__dict__)
+        # logger.info(Task.from_json(ret).__dict__)
+        # logger.info(self.__dict__)
         return ret
 
     @staticmethod
@@ -403,9 +403,9 @@ class Task(object):
         loaded = json.loads(json_str)
         my_task = Task(None, None, None, retry_policy=_get_empty_retry_policy())
 
-        logger.info("LOADING FROM JSON")
-        logger.info(loaded['workers'])
-        logger.info(loaded['failures'])
+        # logger.info("LOADING FROM JSON")
+        # logger.info(loaded['workers'])
+        # logger.info(loaded['failures'])
 
         my_task.__dict__ = loaded
         my_task.stakeholders = set(loaded['stakeholders'])

@@ -196,12 +196,11 @@ class Failures(object):
         return my_dict
 
     @staticmethod
-    def from_json(json_str):
-        my_dict = json.loads(json_str)
+    def from_json(loaded_json):
         new_self = Failures(None)
-        new_self.window = my_dict['window']
-        new_self.failures = collections.deque(my_dict['failures'])
-        new_self.first_failure_time = my_dict['first_failure_time']
+        new_self.window = loaded_json['window']
+        new_self.failures = collections.deque(loaded_json['failures'])
+        new_self.first_failure_time = loaded_json['first_failure_time']
         return new_self
 
     def add_failure(self):
@@ -268,9 +267,8 @@ class OrderedSet(MutableSet):
         return [x.to_json() if hasattr(x, 'to_json') else x for x in self]
 
     @staticmethod
-    def from_json(json_str):
-        my_list = json.loads(json_str)
-        new_self = OrderedSet(iterable=my_list)
+    def from_json(loaded_json):
+        new_self = OrderedSet(iterable=loaded_json)
         return new_self
 
     def __len__(self):

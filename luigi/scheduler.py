@@ -264,12 +264,11 @@ class OrderedSet(MutableSet):
     def to_json(self):
         # my_dict = {"end": self.end, "map": self.map}
         # logger.info("brandon help: " + str(my_dict))
-        return [x.to_json() if hasattr(x, 'to_json') else x for x in self]
+        return list(self)
 
     @staticmethod
     def from_json(loaded_json):
-        new_self = OrderedSet(iterable=loaded_json)
-        return new_self
+        return OrderedSet(iterable=loaded_json)
 
     def __len__(self):
         return len(self.map)
@@ -1338,7 +1337,7 @@ class Scheduler(object):
         task_dict = {t.id : t for t in all_tasks}
 
         for task in filter(filter_func, tasks):
-            logger.info(task.to_json())
+            # logger.info(task.to_json())
             if task.status != PENDING or \
                not upstream_status or \
                upstream_status == self._upstream_status(task.id, upstream_status_table, task_dict):

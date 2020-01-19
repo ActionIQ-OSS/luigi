@@ -30,6 +30,7 @@ import json
 
 from luigi.batch_notifier import BatchNotifier
 
+import pickle
 import functools
 import hashlib
 import itertools
@@ -264,6 +265,7 @@ class OrderedSet(MutableSet):
     def to_json(self):
         # my_dict = {"end": self.end, "map": self.map}
         # logger.info("brandon help: " + str(my_dict))
+        logger.info("PICKLE DUMP SELF: " + pickle.dumps(self))
         return [x.to_json() if hasattr(x, 'to_json') else x for x in self]
 
     @staticmethod

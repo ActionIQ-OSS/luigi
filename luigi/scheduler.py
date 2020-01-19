@@ -395,6 +395,8 @@ class Task(object):
 
         ret = json.dumps(in_progress, cls=ComplexEncoder)
         logger.info(Task.from_json(ret))
+        logger.info("WORKED?")
+        logger.info(Task.from_json(ret).__dict__ == self.__dict__)
         return ret
 
     @staticmethod

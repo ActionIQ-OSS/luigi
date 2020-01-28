@@ -617,7 +617,7 @@ class SimpleTaskState(object):
 
     def update_status(self, task, config):
         # Mark tasks with no remaining active stakeholders for deletion
-        if (not task.stakeholders) and (task.remove is None) and (task.status != RUNNING):
+        if (not task.stakeholders) and (task.remove is None) and (task.status == DONE):
             # We don't check for the RUNNING case, because that is already handled
             # by the fail_dead_worker_task function.
             logger.debug("Task %r has no stakeholders anymore -> might remove "

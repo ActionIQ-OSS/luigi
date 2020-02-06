@@ -249,6 +249,10 @@ class TaskProcess(multiprocessing.Process):
                     child.terminate()
                 except psutil.NoSuchProcess:
                     continue
+        except OSError:
+            logger.info("BRANDON got OSError on terminate, trying again!")
+            time.sleep(1)
+            self._recursive_terminate()
         except psutil.NoSuchProcess:
             return
 

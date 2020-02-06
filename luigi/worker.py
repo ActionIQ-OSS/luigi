@@ -236,6 +236,7 @@ class TaskProcess(multiprocessing.Process):
         import psutil
 
         try:
+            logger.info("BRANDON trying to recursive terminate")
             parent = psutil.Process(self.pid)
             children = parent.children(recursive=True)
 

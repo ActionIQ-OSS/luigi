@@ -249,13 +249,23 @@ class TaskProcess(multiprocessing.Process):
                 try:
                     child.terminate()
                 except psutil.NoSuchProcess:
+                    # Process is already gone, no one else has claimed this PID yet
                     continue
-        except OSError:
-            logger.info("BRANDON got OSError on terminate, trying again!")
-            time.sleep(1)
-            self._recursive_terminate()
+                except OSError as exception:
+                    # Process is already gone, and someone else has claimed this PID
+                    if exception.errno == errno.EPERM:
+                        continue
+                    else:
+                        raise exception
         except psutil.NoSuchProcess:
+            # Process is already gone, no one else has claimed this PID yet
             return
+        except OSError as exception:
+            # Process is already gone, and someone else has claimed this PID
+            if exception.errno == errno.EPERM:
+                return
+            else:
+                raise exception
 
     def terminate(self):
         """Terminate this process and its subprocesses."""

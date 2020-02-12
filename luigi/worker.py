@@ -30,6 +30,7 @@ ways between versions. The exception is the exception types and the
 
 import collections
 import datetime
+import errno
 import getpass
 import importlib
 import logging

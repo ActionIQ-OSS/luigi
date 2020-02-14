@@ -129,7 +129,8 @@ def rpc_method(**request_args):
 
 class scheduler(Config):
     retry_delay = parameter.FloatParameter(default=900.0)
-    remove_delay = parameter.FloatParameter(default=600.0)
+    done_remove_delay = parameter.FloatParameter(default=600.0)
+    disabled_remove_delay = parameter.FloatParameter(default=600.0)
     worker_disconnect_delay = parameter.FloatParameter(default=60.0)
     state_path = parameter.Parameter(default='/var/lib/luigi-server/state.pickle')
 
@@ -617,12 +618,15 @@ class SimpleTaskState(object):
 
     def update_status(self, task, config):
         # Mark tasks with no remaining active stakeholders for deletion
-        if (not task.stakeholders) and (task.remove is None) and (task.status == DONE):
-            # We don't check for the RUNNING case, because that is already handled
-            # by the fail_dead_worker_task function.
-            logger.debug("Task %r has no stakeholders anymore -> might remove "
-                         "task in %s seconds", task.id, config.remove_delay)
-            task.remove = time.time() + config.remove_delay
+        if (not task.stakeholders) and (task.remove is None):
+            if (task.status == DONE):
+                logger.debug("Task %r has no stakeholders anymore -> might remove "
+                             "task in %s seconds", task.id, config.done_remove_delay)
+                task.remove = time.time() + config.done_remove_delay
+            elif (task.status == DISABLED):
+                logger.debug("Task %r has no stakeholders anymore -> might remove "
+                             "task in %s seconds", task.id, config.disabled_remove_delay)
+                task.remove = time.time() + config.disabled_remove_delay
 
         # Re-enable task after the disable time expires
         if task.status == DISABLED and task.scheduler_disable_time is not None:

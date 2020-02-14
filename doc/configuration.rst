@@ -782,8 +782,12 @@ disable-window-seconds
 record_task_history
   If true, stores task history in a database. Defaults to false.
 
-remove_delay
-  Number of seconds to wait before removing a task that has no
+done_remove_delay
+  Number of seconds to wait before removing a DONE task that has no
+  stakeholders. Defaults to 600 (10 minutes).
+
+disabled_remove_delay
+  Number of seconds to wait before removing a DISABLED task that has no
   stakeholders. Defaults to 600 (10 minutes).
 
 retry_delay

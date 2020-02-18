@@ -1937,7 +1937,7 @@ class SchedulerApiTest(unittest.TestCase):
         """
         Test how assistants affect longevity of tasks
 
-        Assistants should not affect longevity expect for the tasks that it is
+        Assistants should not affect longevity except for the tasks that it is
         running, par the one it's actually running.
         """
         self.sch = Scheduler(retry_delay=100000000000)  # Never pendify failed tasks
@@ -1961,8 +1961,9 @@ class SchedulerApiTest(unittest.TestCase):
         self.setTime(200000)
         self.sch.ping(worker='assistant')
         self.sch.prune()
-        nurtured_statuses = [RUNNING]
-        not_nurtured_statuses = [DONE, UNKNOWN, DISABLED, PENDING, FAILED]
+        # we only prune DONE and DISABLED tasks, never any other status
+        nurtured_statuses = [PENDING, RUNNING, FAILED, UNKNOWN]
+        not_nurtured_statuses = [DONE, DISABLED]
 
         for status in nurtured_statuses:
             self.assertEqual(set([status.lower()]), set(self.sch.task_list(status, '')))
@@ -1970,7 +1971,7 @@ class SchedulerApiTest(unittest.TestCase):
         for status in not_nurtured_statuses:
             self.assertEqual(set([]), set(self.sch.task_list(status, '')))
 
-        self.assertEqual(1, len(self.sch.task_list(None, '')))  # None == All statuses
+        self.assertEqual(4, len(self.sch.task_list(None, '')))  # None == All statuses
 
     def test_no_crash_on_only_disable_hard_timeout(self):
         """

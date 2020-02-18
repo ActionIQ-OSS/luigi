@@ -123,7 +123,7 @@ class DummyErrorTask(Task):
 class WorkerTest(LuigiTestCase):
 
     def run(self, result=None):
-        self.sch = Scheduler(retry_delay=100, remove_delay=1000, worker_disconnect_delay=10, stable_done_cooldown_secs=0)
+        self.sch = Scheduler(retry_delay=100, worker_disconnect_delay=10, stable_done_cooldown_secs=0)
         self.time = time.time
         with Worker(scheduler=self.sch, worker_id='X') as w, Worker(scheduler=self.sch, worker_id='Y') as w2:
             self.w = w
@@ -529,7 +529,7 @@ class WorkerTest(LuigiTestCase):
         eb = ExternalB()
         self.assertEqual(str(eb), "B()")
 
-        sch = Scheduler(retry_delay=100, remove_delay=1000, worker_disconnect_delay=10)
+        sch = Scheduler(retry_delay=100, worker_disconnect_delay=10)
         with Worker(scheduler=sch, worker_id='X') as w, Worker(scheduler=sch, worker_id='Y') as w2:
             self.assertTrue(w.add(b))
             self.assertTrue(w2.add(eb))
@@ -554,7 +554,7 @@ class WorkerTest(LuigiTestCase):
 
         self.assertEqual(str(eb), "B()")
 
-        sch = Scheduler(retry_delay=100, remove_delay=1000, worker_disconnect_delay=10)
+        sch = Scheduler(retry_delay=100, worker_disconnect_delay=10)
         with Worker(scheduler=sch, worker_id='X') as w, Worker(scheduler=sch, worker_id='Y') as w2:
             self.assertTrue(w2.add(eb))
             self.assertTrue(w.add(b))
@@ -585,7 +585,7 @@ class WorkerTest(LuigiTestCase):
 
         b = B()
 
-        sch = Scheduler(retry_delay=100, remove_delay=1000, worker_disconnect_delay=10)
+        sch = Scheduler(retry_delay=100, worker_disconnect_delay=10)
 
         with Worker(scheduler=sch, worker_id='X', keep_alive=True, count_uniques=True) as w:
             with Worker(scheduler=sch, worker_id='Y', keep_alive=True, count_uniques=True, wait_interval=0.1, wait_jitter=0.05) as w2:
@@ -619,7 +619,7 @@ class WorkerTest(LuigiTestCase):
 
         b = B()
 
-        sch = Scheduler(retry_delay=100, remove_delay=1000, worker_disconnect_delay=10)
+        sch = Scheduler(retry_delay=100, worker_disconnect_delay=10)
 
         with Worker(scheduler=sch, worker_id='X', keep_alive=True, count_uniques=True) as w:
             with Worker(scheduler=sch, worker_id='Y', keep_alive=True, count_uniques=True, wait_interval=0.1, wait_jitter=0.05) as w2:
@@ -652,7 +652,7 @@ class WorkerTest(LuigiTestCase):
                 return a, c
 
         b = B()
-        sch = Scheduler(retry_delay=100, remove_delay=1000, worker_disconnect_delay=10)
+        sch = Scheduler(retry_delay=100, worker_disconnect_delay=10)
         with Worker(scheduler=sch, worker_id="foo") as w:
             self.assertFalse(w.add(b))
             self.assertTrue(w.run())
@@ -685,7 +685,7 @@ class WorkerTest(LuigiTestCase):
                 return c, a
 
         b = B()
-        sch = Scheduler(retry_delay=100, remove_delay=1000, worker_disconnect_delay=10)
+        sch = Scheduler(retry_delay=100, worker_disconnect_delay=10)
         with Worker(scheduler=sch, worker_id="foo") as w:
             self.assertFalse(w.add(b))
             self.assertTrue(w.run())
@@ -939,7 +939,7 @@ class WorkerKeepAliveTests(LuigiTestCase):
 
 class WorkerInterruptedTest(unittest.TestCase):
     def setUp(self):
-        self.sch = Scheduler(retry_delay=100, remove_delay=1000, worker_disconnect_delay=10)
+        self.sch = Scheduler(retry_delay=100, worker_disconnect_delay=10)
 
     requiring_sigusr = unittest.skipUnless(hasattr(signal, 'SIGUSR1'),
                                            'signal.SIGUSR1 not found on this system')
@@ -988,7 +988,7 @@ class WorkerInterruptedTest(unittest.TestCase):
 
 class WorkerDisabledTest(LuigiTestCase):
     def make_sch(self):
-        return Scheduler(retry_delay=100, remove_delay=1000, worker_disconnect_delay=10)
+        return Scheduler(retry_delay=100, worker_disconnect_delay=10)
 
     def _test_stop_getting_new_work_build(self, sch, worker):
         """
@@ -1088,7 +1088,6 @@ class WorkerPingThreadTests(unittest.TestCase):
         """
         sch = Scheduler(
             retry_delay=100,
-            remove_delay=1000,
             worker_disconnect_delay=10,
         )
 
@@ -1146,7 +1145,7 @@ class WorkerEmailTest(LuigiTestCase):
 
     def run(self, result=None):
         super(WorkerEmailTest, self).setUp()
-        sch = Scheduler(retry_delay=100, remove_delay=1000, worker_disconnect_delay=10)
+        sch = Scheduler(retry_delay=100, worker_disconnect_delay=10)
         with Worker(scheduler=sch, worker_id="foo") as self.worker:
             super(WorkerEmailTest, self).run(result)
 
@@ -1626,7 +1625,7 @@ class Dummy2Task(Task):
 
 class AssistantTest(unittest.TestCase):
     def run(self, result=None):
-        self.sch = Scheduler(retry_delay=100, remove_delay=1000, worker_disconnect_delay=10)
+        self.sch = Scheduler(retry_delay=100, worker_disconnect_delay=10)
         self.assistant = Worker(scheduler=self.sch, worker_id='Y', assistant=True)
         with Worker(scheduler=self.sch, worker_id='X') as w:
             self.w = w

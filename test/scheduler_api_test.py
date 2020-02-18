@@ -40,7 +40,8 @@ class SchedulerApiTest(unittest.TestCase):
     def get_scheduler_config(self):
         return {
             'retry_delay': 100,
-            'remove_delay': 1000,
+            'done_remove_delay': 1000,
+            'disabled_remove_delay': 10000,
             'worker_disconnect_delay': 10,
             'disable_persist': 10,
             'disable_window': 10,
@@ -809,20 +810,22 @@ class SchedulerApiTest(unittest.TestCase):
     def test_assistant_doesnt_keep_alive_task(self):
         self.setTime(0)
         self.sch.add_task(worker='X', task_id='A')
+        self.sch.add_task(worker='X', task_id='B', status=DISABLED)
         self.assertEqual('A', self.sch.get_work(worker='X')['task_id'])
         self.sch.add_worker('Y', {'assistant': True})
 
-        remove_delay = self.get_scheduler_config()['remove_delay'] + 1.0
+        remove_delay = self.get_scheduler_config()['disabled_remove_delay'] + 1.0
         self.setTime(remove_delay)
         self.sch.ping(worker='Y')
         self.sch.prune()
         self.assertEqual(['A'], list(self.sch.task_list(status='FAILED', upstream_status='').keys()))
-        self.assertEqual(['A'], list(self.sch.task_list(status='', upstream_status='').keys()))
+        self.assertEqual(['A', 'B'], list(self.sch.task_list(status='', upstream_status='').keys()))
 
         self.setTime(2*remove_delay)
         self.sch.ping(worker='Y')
         self.sch.prune()
-        self.assertEqual([], list(self.sch.task_list(status='', upstream_status='').keys()))
+        # we removed the DISABLED task but not the FAILED one
+        self.assertEqual(['A'], list(self.sch.task_list(status='', upstream_status='').keys()))
 
     def test_assistant_request_runnable_task(self):
         """
@@ -839,31 +842,34 @@ class SchedulerApiTest(unittest.TestCase):
         self.sch.add_task(worker='X', task_id='A', runnable=False)
         self.assertIsNone(self.sch.get_work(worker='Y', assistant=True)['task_id'])
 
-    def _test_prune_done_tasks(self, expected=None):
+    def _test_prune_tasks(self, wait, expected=None):
         self.setTime(0)
         self.sch.add_task(worker=WORKER, task_id='A', status=DONE)
         self.sch.add_task(worker=WORKER, task_id='B', deps=['A'], status=DONE)
         self.sch.add_task(worker=WORKER, task_id='C', deps=['B'])
 
         self.setTime(600)
-        self.sch.ping(worker='MAYBE_ASSITANT')
+        self.sch.ping(worker='MAYBE_ASSISTANT')
         self.sch.prune()
-        self.setTime(2000)
-        self.sch.ping(worker='MAYBE_ASSITANT')
+
+        self.setTime(wait)
+        self.sch.ping(worker='MAYBE_ASSISTANT')
         self.sch.prune()
 
         self.assertEqual(set(expected), set(self.sch.task_list('', '').keys()))
 
-    def test_prune_done_tasks_not_assistant(self, expected=None):
+    def test_prune_done_tasks_not_assistant(self):
         # Here, MAYBE_ASSISTANT isnt an assistant
-        self._test_prune_done_tasks(expected=[])
+        # expect C to still exist because we only prune done tasks
+        self._test_prune_tasks(wait=self.get_scheduler_config()['done_remove_delay']*2, expected=['C'])
 
     def test_keep_tasks_for_assistant(self):
-        self.sch.get_work(worker='MAYBE_ASSITANT', assistant=True)  # tell the scheduler this is an assistant
-        self._test_prune_done_tasks([])
+        self.sch.get_work(worker='MAYBE_ASSISTANT', assistant=True)  # tell the scheduler this is an assistant
+        # expect C to still exist because we only prune done tasks
+        self._test_prune_tasks(wait=self.get_scheduler_config()['done_remove_delay']*2, expected=['C'])
 
     def test_keep_scheduler_disabled_tasks_for_assistant(self):
-        self.sch.get_work(worker='MAYBE_ASSITANT', assistant=True)  # tell the scheduler this is an assistant
+        self.sch.get_work(worker='MAYBE_ASSISTANT', assistant=True)  # tell the scheduler this is an assistant
 
         # create a scheduler disabled task and a worker disabled task
         for i in range(10):
@@ -872,12 +878,23 @@ class SchedulerApiTest(unittest.TestCase):
 
         # scheduler prunes the worker disabled task
         self.assertEqual({'D', 'E'}, set(self.sch.task_list(DISABLED, '')))
-        self._test_prune_done_tasks([])
+        # A and B are DONE, D and E are DISABLED, wait long enough for both to disappear => only C remains
+        self._test_prune_tasks(wait=self.get_scheduler_config()['disabled_remove_delay']*2, expected=['C'])
 
     def test_keep_failed_tasks_for_assistant(self):
-        self.sch.get_work(worker='MAYBE_ASSITANT', assistant=True)  # tell the scheduler this is an assistant
+        self.sch.get_work(worker='MAYBE_ASSISTANT', assistant=True)  # tell the scheduler this is an assistant
         self.sch.add_task(worker=WORKER, task_id='D', status=FAILED, deps=['A'])
-        self._test_prune_done_tasks([])
+        # C is PENDING, D is FAILED
+        # other tasks are gone
+        self._test_prune_tasks(wait=self.get_scheduler_config()['disabled_remove_delay']*2, expected=['C', 'D'])
+
+    def test_disabled_tasks_live_longer_than_done(self):
+        self.sch.get_work(worker='MAYBE_ASSISTANT', assistant=True)
+        self.sch.add_task(worker=WORKER, task_id='D', status=DISABLED)
+        # A and B are DONE, C is PENDING, D is DISABLED
+        self._test_prune_tasks(wait=10, expected=['A', 'B', 'C', 'D'])
+        self._test_prune_tasks(wait=self.get_scheduler_config()['done_remove_delay']*2, expected=['C', 'D'])
+        self._test_prune_tasks(wait=self.get_scheduler_config()['disabled_remove_delay']*2, expected=['C'])
 
     def test_count_pending(self):
         for num_tasks in range(1, 20):
@@ -1930,7 +1947,7 @@ class SchedulerApiTest(unittest.TestCase):
         """
         Test how assistants affect longevity of tasks
 
-        Assistants should not affect longevity expect for the tasks that it is
+        Assistants should not affect longevity except for the tasks that it is
         running, par the one it's actually running.
         """
         self.sch = Scheduler(retry_delay=100000000000)  # Never pendify failed tasks
@@ -1954,8 +1971,9 @@ class SchedulerApiTest(unittest.TestCase):
         self.setTime(200000)
         self.sch.ping(worker='assistant')
         self.sch.prune()
-        nurtured_statuses = [RUNNING]
-        not_nurtured_statuses = [DONE, UNKNOWN, DISABLED, PENDING, FAILED]
+        # we only prune DONE and DISABLED tasks, never any other status
+        nurtured_statuses = [PENDING, RUNNING, FAILED, UNKNOWN]
+        not_nurtured_statuses = [DONE, DISABLED]
 
         for status in nurtured_statuses:
             self.assertEqual(set([status.lower()]), set(self.sch.task_list(status, '')))
@@ -1963,7 +1981,7 @@ class SchedulerApiTest(unittest.TestCase):
         for status in not_nurtured_statuses:
             self.assertEqual(set([]), set(self.sch.task_list(status, '')))
 
-        self.assertEqual(1, len(self.sch.task_list(None, '')))  # None == All statuses
+        self.assertEqual(4, len(self.sch.task_list(None, '')))  # None == All statuses
 
     def test_no_crash_on_only_disable_hard_timeout(self):
         """
@@ -2012,7 +2030,9 @@ class SchedulerApiTest(unittest.TestCase):
         self.sch.ping(worker='assistant')
         self.sch.prune()
         self.assertEqual({'B'}, set(self.sch.task_list(RUNNING, '')))
-        self.assertEqual({'B'}, set(self.sch.task_list('', '')))
+        self.assertEqual({'A'}, set(self.sch.task_list(PENDING, ''))) # went back to PENDING
+        # we only prune DONE and DISABLED tasks, not PENDING
+        self.assertEqual({'A', 'B'}, set(self.sch.task_list('', '')))
 
     @mock.patch('luigi.scheduler.BatchNotifier')
     def test_batch_failure_emails(self, BatchNotifier):

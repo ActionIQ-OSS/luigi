@@ -41,7 +41,7 @@ class SchedulerApiTest(unittest.TestCase):
         return {
             'retry_delay': 100,
             'done_remove_delay': 1000,
-            'disabled_remove_delay': 1000,
+            'disabled_remove_delay': 10000,
             'worker_disconnect_delay': 10,
             'disable_persist': 10,
             'disable_window': 10,
@@ -885,6 +885,14 @@ class SchedulerApiTest(unittest.TestCase):
         # C is PENDING, D is FAILED
         # other tasks are gone
         self._test_prune_tasks(wait=self.get_scheduler_config()['disabled_remove_delay']*2, expected=['C', 'D'])
+
+    def test_disabled_tasks_live_longer_than_done(self):
+        self.sch.get_work(worker='MAYBE_ASSISTANT', assistant=True)
+        self.sch.add_task(worker=WORKER, task_id='D', status=DISABLED)
+        # A and B are DONE, C is PENDING, D is DISABLED
+        self._test_prune_tasks(wait=10, expected=['A', 'B', 'C', 'D'])
+        self._test_prune_tasks(wait=self.get_scheduler_config()['done_remove_delay']*2, expected=['C', 'D'])
+        self._test_prune_tasks(wait=self.get_scheduler_config()['disabled_remove_delay']*2, expected=['C'])
 
     def test_count_pending(self):
         for num_tasks in range(1, 20):

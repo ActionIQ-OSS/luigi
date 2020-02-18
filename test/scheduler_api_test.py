@@ -882,9 +882,9 @@ class SchedulerApiTest(unittest.TestCase):
     def test_keep_failed_tasks_for_assistant(self):
         self.sch.get_work(worker='MAYBE_ASSISTANT', assistant=True)  # tell the scheduler this is an assistant
         self.sch.add_task(worker=WORKER, task_id='D', status=FAILED, deps=['A'])
-        # C is PENDING, D is FAILED, and A is a needed dep of D
+        # C is PENDING, D is FAILED
         # other tasks are gone
-        self._test_prune_tasks(wait=self.get_scheduler_config()['disabled_remove_delay']*2, expected=['A', 'C', 'D'])
+        self._test_prune_tasks(wait=self.get_scheduler_config()['disabled_remove_delay']*2, expected=['C', 'D'])
 
     def test_count_pending(self):
         for num_tasks in range(1, 20):

@@ -810,20 +810,22 @@ class SchedulerApiTest(unittest.TestCase):
     def test_assistant_doesnt_keep_alive_task(self):
         self.setTime(0)
         self.sch.add_task(worker='X', task_id='A')
+        self.sch.add_task(worker='X', task_id='B', status=DISABLED)
         self.assertEqual('A', self.sch.get_work(worker='X')['task_id'])
         self.sch.add_worker('Y', {'assistant': True})
 
-        remove_delay = self.get_scheduler_config()['remove_delay'] + 1.0
+        remove_delay = self.get_scheduler_config()['disabled_remove_delay'] + 1.0
         self.setTime(remove_delay)
         self.sch.ping(worker='Y')
         self.sch.prune()
         self.assertEqual(['A'], list(self.sch.task_list(status='FAILED', upstream_status='').keys()))
-        self.assertEqual(['A'], list(self.sch.task_list(status='', upstream_status='').keys()))
+        self.assertEqual(['A', 'B'], list(self.sch.task_list(status='', upstream_status='').keys()))
 
         self.setTime(2*remove_delay)
         self.sch.ping(worker='Y')
         self.sch.prune()
-        self.assertEqual([], list(self.sch.task_list(status='', upstream_status='').keys()))
+        # we removed the DISABLED task but not the FAILED one
+        self.assertEqual(['A'], list(self.sch.task_list(status='', upstream_status='').keys()))
 
     def test_assistant_request_runnable_task(self):
         """

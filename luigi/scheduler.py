@@ -1162,6 +1162,9 @@ class Scheduler(object):
         if self._config.prune_on_get_work:
             self.prune()
 
+        logger.info("DONE REMOVE DELAY: {}".format(config.done_remove_delay))
+        logger.info("DISABLED REMOVE DELAY: {}".format(config.disabled_remove_delay))
+
         assert worker is not None
         worker_id = worker
         worker = self._update_worker(

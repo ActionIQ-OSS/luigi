@@ -752,7 +752,8 @@ class Scheduler(object):
             remove_workers = all_stakeholders.difference(useful_stakeholders)
             # Don't prune an active worker
             for active_worker in self._state.get_active_workers():
-                remove_workers.remove(active_worker.id)
+                if active_worker.id in remove_workers:
+                    remove_workers.remove(active_worker.id)
             self._state.remove_workers_from_tasks(remove_workers, True)
 
     @rpc_method()

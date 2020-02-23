@@ -130,6 +130,10 @@ def rpc_method(**request_args):
 class scheduler(Config):
     retry_delay = parameter.FloatParameter(default=900.0)
     done_remove_delay = parameter.FloatParameter(default=600.0)
+    enable_stakeholders_for_pruning = parameter.BoolParameter(
+        default=True,
+        description="Take stakeholders into account when pruning tasks"
+    )
     disabled_remove_delay = parameter.FloatParameter(default=600.0)
     worker_disconnect_delay = parameter.FloatParameter(default=60.0)
     state_path = parameter.Parameter(default='/var/lib/luigi-server/state.pickle')
@@ -616,9 +620,20 @@ class SimpleTaskState(object):
             self.set_status(task, FAILED, config)
             task.retry = time.time() + config.retry_delay
 
+    @staticmethod
+    def _has_stakeholders_or_ignore(task, config):
+        """
+        Used for pruning, generally we want to check if a task has stakeholders.
+        In rare condition we want to fake that it has stakeholders
+        :param task: task
+        :param config: global config
+        :return: task has stake holders or honoring stake holders is disabled
+        """
+        return task.stakeholders or not config.enable_stakeholders_for_pruning
+
     def update_status(self, task, config):
         # Mark tasks with no remaining active stakeholders for deletion
-        if (not task.stakeholders) and (task.remove is None):
+        if (not self._has_stakeholders_or_ignore(task, config)) and (task.remove is None):
             if (task.status == DONE):
                 logger.debug("Task %r has no stakeholders anymore -> might remove "
                              "task in %s seconds", task.id, config.done_remove_delay)

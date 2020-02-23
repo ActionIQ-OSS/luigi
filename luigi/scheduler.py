@@ -131,6 +131,7 @@ class scheduler(Config):
     retry_delay = parameter.FloatParameter(default=900.0)
     done_remove_delay = parameter.FloatParameter(default=600.0)
     disabled_remove_delay = parameter.FloatParameter(default=600.0)
+    remove_stakeholders = parameter.BoolParameter(default=True, description="Remove stakeholders if worker is removed")
     worker_disconnect_delay = parameter.FloatParameter(default=60.0)
     state_path = parameter.Parameter(default='/var/lib/luigi-server/state.pickle')
 
@@ -667,11 +668,11 @@ class SimpleTaskState(object):
     def get_worker(self, worker_id):
         return self._active_workers.setdefault(worker_id, Worker(worker_id))
 
-    def inactivate_workers(self, delete_workers):
+    def inactivate_workers(self, delete_workers, remove_stakeholders=True):
         # Mark workers as inactive
         for worker in delete_workers:
             self._active_workers.pop(worker)
-        self._remove_workers_from_tasks(delete_workers)
+        self._remove_workers_from_tasks(delete_workers, remove_stakeholders=remove_stakeholders)
 
     def _remove_workers_from_tasks(self, workers, remove_stakeholders=True):
         for task in self.get_active_tasks():
@@ -752,7 +753,7 @@ class Scheduler(object):
                 logger.debug("Worker %s timed out (no contact for >=%ss)", worker, self._config.worker_disconnect_delay)
                 remove_workers.append(worker.id)
 
-        self._state.inactivate_workers(remove_workers)
+        self._state.inactivate_workers(remove_workers, self._config.remove_stakeholders)
 
     def _prune_tasks(self):
         assistant_ids = {w.id for w in self._state.get_assistants()}

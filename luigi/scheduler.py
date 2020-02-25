@@ -131,6 +131,9 @@ class scheduler(Config):
     retry_delay = parameter.FloatParameter(default=900.0)
     done_remove_delay = parameter.FloatParameter(default=600.0)
     disabled_remove_delay = parameter.FloatParameter(default=600.0)
+    short_lived_stakeholders = parameter.BoolParameter(
+        default=False, description="Stakeholders are short lived"
+    )
     worker_disconnect_delay = parameter.FloatParameter(default=60.0)
     state_path = parameter.Parameter(default='/var/lib/luigi-server/state.pickle')
 
@@ -667,20 +670,20 @@ class SimpleTaskState(object):
     def get_worker(self, worker_id):
         return self._active_workers.setdefault(worker_id, Worker(worker_id))
 
-    def inactivate_workers(self, delete_workers):
+    def inactivate_workers(self, delete_workers, remove_stakeholders=True):
         # Mark workers as inactive
         for worker in delete_workers:
             self._active_workers.pop(worker)
-        self._remove_workers_from_tasks(delete_workers)
+        self.remove_workers_from_tasks(delete_workers, remove_stakeholders=remove_stakeholders)
 
-    def _remove_workers_from_tasks(self, workers, remove_stakeholders=True):
+    def remove_workers_from_tasks(self, workers, remove_stakeholders=True):
         for task in self.get_active_tasks():
             if remove_stakeholders:
                 task.stakeholders.difference_update(workers)
             task.workers -= workers
 
     def disable_workers(self, worker_ids):
-        self._remove_workers_from_tasks(worker_ids, remove_stakeholders=False)
+        self.remove_workers_from_tasks(worker_ids, remove_stakeholders=False)
         for worker_id in worker_ids:
             worker = self.get_worker(worker_id)
             worker.disabled = True
@@ -737,12 +740,29 @@ class Scheduler(object):
         if self._config.batch_emails:
             self._email_batcher.send_email()
 
+    def _prune_short_lived_stakeholders(self):
+        if self._config.short_lived_stakeholders:
+            useful_stakeholders = set()
+            all_stakeholders = set()
+            for task in self._state.get_active_tasks():
+                all_stakeholders.update(task.stakeholders)
+                # Tasks that are not done or disabled are useful
+                if task.status != DONE and task.status != DISABLED:
+                    useful_stakeholders.update(task.stakeholders)
+            remove_workers = all_stakeholders.difference(useful_stakeholders)
+            # Don't prune an active worker
+            for active_worker in self._state.get_active_workers():
+                if active_worker.id in remove_workers:
+                    remove_workers.remove(active_worker.id)
+            self._state.remove_workers_from_tasks(remove_workers, True)
+
     @rpc_method()
     def prune(self):
         logger.debug("Starting pruning of task graph")
         self._prune_workers()
         self._prune_tasks()
         self._prune_emails()
+        self._prune_short_lived_stakeholders()
         logger.debug("Done pruning task graph")
 
     def _prune_workers(self):
@@ -752,7 +772,7 @@ class Scheduler(object):
                 logger.debug("Worker %s timed out (no contact for >=%ss)", worker, self._config.worker_disconnect_delay)
                 remove_workers.append(worker.id)
 
-        self._state.inactivate_workers(remove_workers)
+        self._state.inactivate_workers(remove_workers, not self._config.short_lived_stakeholders)
 
     def _prune_tasks(self):
         assistant_ids = {w.id for w in self._state.get_assistants()}

@@ -896,6 +896,28 @@ class SchedulerApiTest(unittest.TestCase):
         self._test_prune_tasks(wait=self.get_scheduler_config()['done_remove_delay']*2, expected=['C', 'D'])
         self._test_prune_tasks(wait=self.get_scheduler_config()['disabled_remove_delay']*2, expected=['C'])
 
+    def test_task_goes_away_if_no_stakeholder(self):
+        self.sch.get_work(worker='MAYBE_ASSISTANT', assistant=True)
+
+        # Oh no, B is gone even though it's a dependency of C! Would show as UNKNOWN in the UI
+        self._test_prune_tasks(
+            wait=self.get_scheduler_config()['done_remove_delay']*2,
+            expected=['C']
+        )
+
+    def test_task_doesnt_go_away_when_config_set(self):
+        new_conf = self.get_scheduler_config()
+        new_conf['short_lived_stakeholders'] = True
+        self.sch = Scheduler(**new_conf)
+
+        self.sch.get_work(worker='MAYBE_ASSISTANT', assistant=True)
+
+        # A is kept, still around because its whole DAG isn't done yet, hooray
+        self._test_prune_tasks(
+            wait=self.get_scheduler_config()['done_remove_delay']*2,
+            expected=['A', 'B', 'C']
+        )
+
     def test_count_pending(self):
         for num_tasks in range(1, 20):
             self.sch.add_task(worker=WORKER, task_id=str(num_tasks), status=PENDING)

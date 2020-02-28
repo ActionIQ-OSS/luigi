@@ -124,6 +124,9 @@ class scheduler(Config):
     retry_delay = parameter.FloatParameter(default=900.0)
     done_remove_delay = parameter.FloatParameter(default=600.0)
     disabled_remove_delay = parameter.FloatParameter(default=600.0)
+    short_lived_stakeholders = parameter.BoolParameter(
+        default=False, description="Stakeholders are short lived"
+    )
     worker_disconnect_delay = parameter.FloatParameter(default=60.0)
     state_path = parameter.Parameter(default='/var/lib/luigi-server/state.pickle')
 
@@ -489,12 +492,29 @@ class Scheduler(object):
         if self._config.batch_emails:
             self._email_batcher.send_email()
 
+    def _prune_short_lived_stakeholders(self):
+        if self._config.short_lived_stakeholders:
+            useful_stakeholders = set()
+            all_stakeholders = set()
+            for task in self._state.get_active_tasks():
+                all_stakeholders.update(task.stakeholders)
+                # Tasks that are not done or disabled are useful
+                if task.status != DONE and task.status != DISABLED:
+                    useful_stakeholders.update(task.stakeholders)
+            remove_workers = all_stakeholders.difference(useful_stakeholders)
+            # Don't prune an active worker
+            for active_worker in self._state.get_active_workers():
+                if active_worker.id in remove_workers:
+                    remove_workers.remove(active_worker.id)
+            self._state.remove_workers_from_tasks(remove_workers, True)
+
     @rpc_method()
     def prune(self):
         logger.debug("Starting pruning of task graph")
         self._prune_workers()
         self._prune_tasks()
         self._prune_emails()
+        self._prune_short_lived_stakeholders()
         logger.debug("Done pruning task graph")
 
     def _prune_workers(self):
@@ -504,7 +524,7 @@ class Scheduler(object):
                 logger.debug("Worker %s timed out (no contact for >=%ss)", worker, self._config.worker_disconnect_delay)
                 remove_workers.append(worker.id)
 
-        self._state.inactivate_workers(remove_workers)
+        self._state.inactivate_workers(remove_workers, not self._config.short_lived_stakeholders)
 
     def _prune_tasks(self):
         assistant_ids = {w.id for w in self._state.get_assistants()}

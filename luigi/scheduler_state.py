@@ -272,7 +272,7 @@ class SchedulerState(object):
     def get_worker_ids(self):
         return [worker.id for worker in self.get_active_workers()]
 
-    def _remove_workers_from_tasks(self, workers, remove_stakeholders=True):
+    def remove_workers_from_tasks(self, workers, remove_stakeholders=True):
         for task in self.get_active_tasks():
             if remove_stakeholders:
                 task.stakeholders.difference_update(workers)
@@ -281,7 +281,7 @@ class SchedulerState(object):
                 self.persist_task(task)
 
     def disable_workers(self, worker_ids):
-        self._remove_workers_from_tasks(worker_ids, remove_stakeholders=False)
+        self.remove_workers_from_tasks(worker_ids, remove_stakeholders=False)
         for worker_id in worker_ids:
             worker = self.get_worker(worker_id)
             worker.disabled = True
@@ -401,10 +401,10 @@ class SqlSchedulerState(SchedulerState):
     def get_worker(self, worker_id):
         return self._active_workers.setdefault(worker_id, Worker(worker_id))
 
-    def inactivate_workers(self, delete_workers):
+    def inactivate_workers(self, delete_workers, remove_stakeholders=True):
         for worker in delete_workers:
             self._active_workers.pop(worker)
-        self._remove_workers_from_tasks(delete_workers)
+        self.remove_workers_from_tasks(delete_workers, remove_stakeholders=remove_stakeholders)
 
     def update_metrics(self, task, config):
         if task.status == DISABLED:
@@ -510,10 +510,10 @@ class SimpleSchedulerState(SchedulerState):
     def get_worker(self, worker_id):
         return self._active_workers.setdefault(worker_id, Worker(worker_id))
 
-    def inactivate_workers(self, delete_workers):
+    def inactivate_workers(self, delete_workers, remove_stakeholders=True):
         for worker in delete_workers:
             self._active_workers.pop(worker)
-        self._remove_workers_from_tasks(delete_workers)
+        self.remove_workers_from_tasks(delete_workers, remove_stakeholders=remove_stakeholders)
 
     def update_metrics(self, task, config):
         if task.status == DISABLED:

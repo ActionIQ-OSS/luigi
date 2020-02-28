@@ -895,9 +895,11 @@ class Scheduler(object):
         num_pending, num_unique_pending, num_pending_last_scheduled = 0, 0, 0
         running_tasks = []
 
+        task_dict = {t.id : t for t in all_tasks}
+
         upstream_status_table = {}
         for task in worker.get_tasks(all_tasks, RUNNING):
-            if self._upstream_status(task.id, upstream_status_table, all_tasks) == UPSTREAM_DISABLED:
+            if self._upstream_status(task.id, upstream_status_table, task_dict) == UPSTREAM_DISABLED:
                 continue
             # Return a list of currently running tasks to the client,
             # makes it easier to troubleshoot
@@ -908,7 +910,7 @@ class Scheduler(object):
                 running_tasks.append(more_info)
 
         for task in worker.get_tasks(all_tasks, PENDING, FAILED):
-            if self._upstream_status(task.id, upstream_status_table, all_tasks) == UPSTREAM_DISABLED:
+            if self._upstream_status(task.id, upstream_status_table, task_dict) == UPSTREAM_DISABLED:
                 continue
             num_pending += 1
             num_unique_pending += int(len(task.workers) == 1)

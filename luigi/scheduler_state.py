@@ -16,7 +16,7 @@ from luigi.scheduler import Worker
 from luigi.task_status import DISABLED, DONE, FAILED, PENDING, RUNNING, BATCH_RUNNING
 
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, String
+from sqlalchemy import Column, String, LargeBinary
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -296,7 +296,7 @@ class DBTask(Base):
 
     task_id = Column(String(255), primary_key=True, index=True)
     status = Column(String(100), index=True)
-    pickled = Column(String(10000))
+    pickled = Column(LargeBinary)
 
 
 class HybridSchedulerState(SimpleSchedulerState):

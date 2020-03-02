@@ -324,7 +324,6 @@ class SqlSchedulerState(SchedulerState):
 
     def load(self):
         self._tasks = {task.id: task for task in self._get_active_tasks_from_db()}
-        pass  # always persisted
 
     def _try_unpickle(self, db_task):
         try:

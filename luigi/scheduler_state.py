@@ -348,7 +348,7 @@ class SqlSchedulerState(SchedulerState):
 
     def get_active_tasks_by_status(self, *statuses):
         logger.info("Task by statuses {}".format(statuses))
-        items = (lambda task: task.status in statuses, self.get_active_tasks())
+        items = [item for item in self.get_active_tasks() if item.status in statuses]
         logger.info("Tasks: {}".format(items))
         return itertools.chain.from_iterable(itertools.ifilter(lambda task: task.status in statuses, self.get_active_tasks()))
 

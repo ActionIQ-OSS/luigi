@@ -350,7 +350,7 @@ class SqlSchedulerState(SchedulerState):
 
     def get_active_tasks_by_status(self, *statuses):
         logger.info("Task by statuses {}".format(statuses))
-        return filter(lambda task: task.status in statuses, self.get_active_tasks())
+        return itertools.ifilter(lambda task: task.status in statuses, self.get_active_tasks())
 
     def set_batcher(self, worker_id, family, batcher_args, max_batch_size):
         self._task_batchers.setdefault(worker_id, {})

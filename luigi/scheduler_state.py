@@ -332,7 +332,7 @@ class SqlSchedulerState(SchedulerState):
             logger.warning("Warning, unable to de-pickle task {}".format(db_task.task_id))
             return None
 
-    def _get_active_tasks(self):
+    def _get_active_tasks_from_db(self):
         start_time = time.time()
         session = self.session()
         db_res = session.query(DBTask).all()

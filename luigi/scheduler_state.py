@@ -333,11 +333,16 @@ class SqlSchedulerState(SchedulerState):
             logger.warning("Warning, unable to de-pickle task {}".format(db_task.task_id))
             return None
 
-    def _get_active_tasks_from_db(self):
+    def _get_active_tasks(self):
+        start_time = time.time()
         session = self.session()
         db_res = session.query(DBTask).all()
         session.close()
-        return filter(lambda t: t, (self._try_unpickle(t) for t in db_res))
+        query_time = time.time()
+        results = filter(lambda t: t, (self._try_unpickle(t) for t in db_res))
+        pickle_time = time.time()
+        logger.info("Get active tasks query time: {}, pickle time: {}".format(query_time - start_time, pickle_time - query_time))
+        return results
 
     def get_active_tasks(self):
         return six.itervalues(self._tasks)

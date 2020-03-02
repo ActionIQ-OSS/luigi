@@ -377,6 +377,7 @@ class SqlSchedulerState(SchedulerState):
         if db_task:
             db_task.status = task.status
             db_task.pickled = pickle.dumps(task, protocol=2)
+            self._tasks[task.id] = task
         else:
             new_task = DBTask(
                 task_id=task.id,
@@ -384,9 +385,9 @@ class SqlSchedulerState(SchedulerState):
                 pickled=pickle.dumps(task, protocol=2)
             )
             session.add(new_task)
+        self._tasks[task.id] = task
         session.commit()
         session.close()
-        self.load()
         return task
 
     def inactivate_tasks(self, delete_tasks):
@@ -398,8 +399,8 @@ class SqlSchedulerState(SchedulerState):
                 session.commit()
             else:
                 logger.warn("Tried to inactivate task that doesn't exist: {}".format(task_id))
+            self._tasks.pop(task_id)
             session.close()
-        self.load()
 
     def get_active_workers(self, last_active_lt=None, last_get_work_gt=None):
         for worker in six.itervalues(self._active_workers):

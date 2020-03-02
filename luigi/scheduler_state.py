@@ -338,7 +338,7 @@ class SqlSchedulerState(SchedulerState):
         query_time = time.time()
         results = filter(lambda t: t, (self._try_unpickle(t) for t in db_res))
         pickle_time = time.time()
-        logger.info("Get active tasks query time: {}, pickle time: {}".format(query_time - start_time, pickle_time - query_time))
+        logger.info("Get active tasks query time: {}, pickle time: {}, count: {}".format(query_time - start_time, pickle_time - query_time, len(results)))
         return results
 
     def get_active_tasks_by_status(self, *statuses):

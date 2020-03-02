@@ -317,10 +317,13 @@ class SqlSchedulerState(SchedulerState):
 
         self._metrics_collector = None
 
+        self._tasks = {}
+
     def dump(self):
         pass  # always persisted
 
     def load(self):
+        self._tasks = {task.id: task for task in self._get_active_tasks_from_db()}
         pass  # always persisted
 
     def _try_unpickle(self, db_task):
@@ -330,17 +333,17 @@ class SqlSchedulerState(SchedulerState):
             logger.warning("Warning, unable to de-pickle task {}".format(db_task.task_id))
             return None
 
-    def get_active_tasks(self):
+    def _get_active_tasks_from_db(self):
         session = self.session()
         db_res = session.query(DBTask).all()
         session.close()
         return filter(lambda t: t, (self._try_unpickle(t) for t in db_res))
 
+    def get_active_tasks(self):
+        return six.itervalues(self._tasks)
+
     def get_active_tasks_by_status(self, *statuses):
-        session = self.session()
-        db_res = session.query(DBTask).filter(DBTask.status.in_(statuses)).all()
-        session.close()
-        return filter(lambda t: t, (self._try_unpickle(t) for t in db_res))
+        return filter(lambda task: task.status in statuses, self.get_active_tasks())
 
     def set_batcher(self, worker_id, family, batcher_args, max_batch_size):
         self._task_batchers.setdefault(worker_id, {})
@@ -376,6 +379,7 @@ class SqlSchedulerState(SchedulerState):
             session.add(new_task)
         session.commit()
         session.close()
+        self.load()
         return task
 
     def inactivate_tasks(self, delete_tasks):
@@ -388,6 +392,7 @@ class SqlSchedulerState(SchedulerState):
             else:
                 logger.warn("Tried to inactivate task that doesn't exist: {}".format(task_id))
             session.close()
+        self.load()
 
     def get_active_workers(self, last_active_lt=None, last_get_work_gt=None):
         for worker in six.itervalues(self._active_workers):

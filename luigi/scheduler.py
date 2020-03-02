@@ -462,7 +462,7 @@ class Scheduler(object):
         from luigi import scheduler_state  # import here since it needs `Worker` from this file
 
         if self._config.use_sql_state:
-            self._state = scheduler_state.SqlSchedulerState(self._config.sql_target)
+            self._state = scheduler_state.HybridSchedulerState(self._config.sql_target)
         else:
             self._state = scheduler_state.SimpleSchedulerState(self._config.state_path)
 

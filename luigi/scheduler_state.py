@@ -299,62 +299,6 @@ class DBTask(Base):
     pickled = Column(String(10000))
 
 
-class HybridSchedulerState(SimpleSchedulerState):
-    """
-    Keeps an in-memory task state for fast access, but also persists all updates to DB
-    This is used for when the scheduler starts up -> gets state from DB
-
-    Passes all operations onto an internal SimpleSchedulerState except for mutating ones,
-    which it echoes to both the SimpleSchedulerState and the SqlSchedulerState
-    """
-    def __init__(self, mysql_target):
-        self.sql_store = SqlSchedulerState(mysql_target) # uses real SQL target, that's where we persist
-        self.mem_store = SimpleSchedulerState("/tmp/") # path doesn't matter since we don't use it
-
-    def dump(self):
-        return self.sql_store.dump()
-
-    def load(self):
-        return self.sql_store.load()
-
-    def get_active_tasks(self):
-        return self.mem_store.get_active_tasks()
-
-    def get_active_tasks_by_status(self, *statuses):
-        return self.mem_store.get_active_tasks_by_status(*statuses)
-
-    def set_batcher(self, worker_id, family, batcher_args, max_batch_size):
-        return self.mem_store.set_batcher(worker_id, family, batcher_args, max_batch_size)
-
-    def get_batcher(self, worker_id, family):
-        return self.mem_store.get_batcher(worker_id, family)
-
-    def get_task(self, task_id, default=None, setdefault=None):
-        self.sql_store.get_task(task_id, default, setdefault)
-        return self.mem_store.get_task(task_id, default, setdefault)
-
-    def persist_task(self, task):
-        self.sql_store.persist_task(task)
-        return self.mem_store.persist_task(task)
-
-    def inactivate_tasks(self, delete_tasks):
-        self.sql_store.inactivate_tasks(delete_tasks)
-        return self.mem_store.inactivate_tasks(delete_tasks)
-
-    def get_active_workers(self, last_active_lt=None, last_get_work_gt=None):
-        return self.mem_store.get_active_workers(last_active_lt, last_get_work_gt)
-
-    def get_worker(self, worker_id):
-        return self.mem_store.get_worker(worker_id)
-
-    def inactivate_workers(self, delete_workers, remove_stakeholders=True):
-        self.sql_store.inactivate_workers(delete_workers, remove_stakeholders)
-        return self.mem_store.inactivate_workers(delete_workers, remove_stakeholders)
-
-    def update_metrics(self, task, config):
-        return self.mem_store.update_metrics(task, config)
-
-
 class SqlSchedulerState(SchedulerState):
     """
     Keep track of the current state and handle persistance backed by a SQL task table.
@@ -583,3 +527,59 @@ class SimpleSchedulerState(SchedulerState):
             self._metrics_collector.handle_task_done(task)
         elif task.status == FAILED:
             self._metrics_collector.handle_task_failed(task)
+
+
+class HybridSchedulerState(SimpleSchedulerState):
+    """
+    Keeps an in-memory task state for fast access, but also persists all updates to DB
+    This is used for when the scheduler starts up -> gets state from DB
+
+    Passes all operations onto an internal SimpleSchedulerState except for mutating ones,
+    which it echoes to both the SimpleSchedulerState and the SqlSchedulerState
+    """
+    def __init__(self, mysql_target):
+        self.sql_store = SqlSchedulerState(mysql_target) # uses real SQL target, that's where we persist
+        self.mem_store = SimpleSchedulerState("/tmp/") # path doesn't matter since we don't use it
+
+    def dump(self):
+        return self.sql_store.dump()
+
+    def load(self):
+        return self.sql_store.load()
+
+    def get_active_tasks(self):
+        return self.mem_store.get_active_tasks()
+
+    def get_active_tasks_by_status(self, *statuses):
+        return self.mem_store.get_active_tasks_by_status(*statuses)
+
+    def set_batcher(self, worker_id, family, batcher_args, max_batch_size):
+        return self.mem_store.set_batcher(worker_id, family, batcher_args, max_batch_size)
+
+    def get_batcher(self, worker_id, family):
+        return self.mem_store.get_batcher(worker_id, family)
+
+    def get_task(self, task_id, default=None, setdefault=None):
+        self.sql_store.get_task(task_id, default, setdefault)
+        return self.mem_store.get_task(task_id, default, setdefault)
+
+    def persist_task(self, task):
+        self.sql_store.persist_task(task)
+        return self.mem_store.persist_task(task)
+
+    def inactivate_tasks(self, delete_tasks):
+        self.sql_store.inactivate_tasks(delete_tasks)
+        return self.mem_store.inactivate_tasks(delete_tasks)
+
+    def get_active_workers(self, last_active_lt=None, last_get_work_gt=None):
+        return self.mem_store.get_active_workers(last_active_lt, last_get_work_gt)
+
+    def get_worker(self, worker_id):
+        return self.mem_store.get_worker(worker_id)
+
+    def inactivate_workers(self, delete_workers, remove_stakeholders=True):
+        self.sql_store.inactivate_workers(delete_workers, remove_stakeholders)
+        return self.mem_store.inactivate_workers(delete_workers, remove_stakeholders)
+
+    def update_metrics(self, task, config):
+        return self.mem_store.update_metrics(task, config)

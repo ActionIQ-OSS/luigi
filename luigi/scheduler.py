@@ -1077,13 +1077,13 @@ class Scheduler(object):
             reply['task_id'] = None
 
         # every 1000ish calls, make sure we sync the DB with our state in memory
-        if self._config.use_sql_state and int(time.time() * 1000) % 20 == 0:
+        if self._config.use_sql_state and int(time.time() * 1000) % 5 == 0:
             current_state = self._state.get_active_tasks()
             self._state._sync_mem_with_db()
             new_state = self._state.get_active_tasks()
             logger.info("PULLED STATE FROM DB")
-            logger.info("OLD: {}".format(current_state))
-            logger.info("NEW: {}".format(new_state))
+            logger.info("OLD: {}".format(list(current_state)))
+            logger.info("NEW: {}".format(list(new_state)))
 
         return reply
 

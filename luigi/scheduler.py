@@ -510,12 +510,16 @@ class Scheduler(object):
 
     @rpc_method()
     def prune(self):
-        logger.debug("Starting pruning of task graph")
+        logger.info("Starting pruning of task graph")
         self._prune_workers()
+        logger.info("Just pruned workers")
         self._prune_tasks()
+        logger.info("Just pruned tasks")
         self._prune_emails()
+        logger.info("Just pruned emails")
         self._prune_short_lived_stakeholders()
-        logger.debug("Done pruning task graph")
+        logger.info("Just pruned short lived stakeholders")
+        logger.info("Done pruning task graph")
 
     def _prune_workers(self):
         remove_workers = []

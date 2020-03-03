@@ -529,7 +529,7 @@ class SimpleSchedulerState(SchedulerState):
             self._metrics_collector.handle_task_failed(task)
 
 
-class HybridSchedulerState(SimpleSchedulerState):
+class HybridSchedulerState(SchedulerState):
     """
     Keeps an in-memory task state for fast access, but also persists all updates to DB
     This is used for when the scheduler starts up -> gets state from DB
@@ -541,11 +541,17 @@ class HybridSchedulerState(SimpleSchedulerState):
         self.sql_store = SqlSchedulerState(mysql_target) # uses real SQL target, that's where we persist
         self.mem_store = SimpleSchedulerState("/tmp/") # path doesn't matter since we don't use it
 
+    def _sync_mem_with_db(self):
+        # doesn't do anything intelligent; just overwrites mem_store with data from sql_store
+        task_state = {task.id: task for task in self.sql_store.get_active_tasks()}
+        self.mem_store.set_state([task_state, {}])
+
     def dump(self):
         return self.sql_store.dump()
 
     def load(self):
-        return self.sql_store.load()
+        self.sql_store.load()
+        self._sync_mem_with_db()
 
     def get_active_tasks(self):
         return self.mem_store.get_active_tasks()

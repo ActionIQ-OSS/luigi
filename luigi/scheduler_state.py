@@ -517,7 +517,7 @@ class SimpleSchedulerState(SchedulerState):
 
     def inactivate_workers(self, delete_workers, remove_stakeholders=True):
         for worker in delete_workers:
-            self._active_workers.pop(worker)
+            self._active_workers.pop(worker, None)
         self.remove_workers_from_tasks(delete_workers, remove_stakeholders=remove_stakeholders)
 
     def update_metrics(self, task, config):
@@ -584,7 +584,6 @@ class HybridSchedulerState(SchedulerState):
         return self.mem_store.get_worker(worker_id)
 
     def inactivate_workers(self, delete_workers, remove_stakeholders=True):
-        self.sql_store.inactivate_workers(delete_workers, remove_stakeholders)
         return self.mem_store.inactivate_workers(delete_workers, remove_stakeholders)
 
     def update_metrics(self, task, config):

@@ -276,9 +276,8 @@ class SchedulerState(object):
         for task in self.get_active_tasks():
             if remove_stakeholders:
                 task.stakeholders.difference_update(workers)
-            if any(w in task.workers for w in workers):
-                task.workers -= workers
-                self.persist_task(task)
+            task.workers -= workers
+            self.persist_task(task)
 
     def disable_workers(self, worker_ids):
         self.remove_workers_from_tasks(worker_ids, remove_stakeholders=False)
@@ -384,14 +383,14 @@ class SqlSchedulerState(SchedulerState):
         return task
 
     def inactivate_tasks(self, delete_tasks):
-        for task_id in delete_tasks:
+        for task in delete_tasks:
             session = self.session()
-            db_task = session.query(DBTask).filter(DBTask.task_id == task_id).first()
+            db_task = session.query(DBTask).filter(DBTask.task_id == task.id).first()
             if db_task:
                 session.delete(db_task)
                 session.commit()
             else:
-                logger.warn("Tried to inactivate task that doesn't exist: {}".format(task_id))
+                logger.warn("Tried to inactivate task that doesn't exist: {}".format(task))
             session.close()
 
     def get_active_workers(self, last_active_lt=None, last_get_work_gt=None):

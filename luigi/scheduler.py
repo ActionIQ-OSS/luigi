@@ -1082,8 +1082,8 @@ class Scheduler(object):
             self._state._sync_mem_with_db()
             new_state = self._state.get_active_tasks()
             logger.info("PULLED STATE FROM DB")
-            logger.info("OLD - NEW = {}".format(set(current_state).difference(set(old_state))))
-            logger.info("NEW - OLD = {}".format(set(old_state).difference(set(current_state))))
+            logger.info("OLD - NEW = {}".format(set(current_state).difference(set(new_state))))
+            logger.info("NEW - OLD = {}".format(set(new_state).difference(set(current_state))))
 
         return reply
 

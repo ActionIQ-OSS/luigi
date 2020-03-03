@@ -588,4 +588,9 @@ class HybridSchedulerState(SchedulerState):
         return self.mem_store.inactivate_workers(delete_workers, remove_stakeholders)
 
     def update_metrics(self, task, config):
-        return self.mem_store.update_metrics(task, config)
+        if task.status == DISABLED:
+            self._metrics_collector.handle_task_disabled(task, config)
+        elif task.status == DONE:
+            self._metrics_collector.handle_task_done(task)
+        elif task.status == FAILED:
+            self._metrics_collector.handle_task_failed(task)

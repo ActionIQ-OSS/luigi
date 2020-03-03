@@ -1,6 +1,7 @@
 import abc
 import collections
 import itertools
+import inspect
 import logging
 import os
 import time
@@ -566,14 +567,23 @@ class HybridSchedulerState(SchedulerState):
         return self.mem_store.get_batcher(worker_id, family)
 
     def get_task(self, task_id, default=None, setdefault=None):
+        curframe = inspect.currentframe()
+        calframe = inspect.getouterframes(curframe, 2)
+        logger.info("GET TASK WAS CALLED BY {}".format(calframe[1][3]))
         self.sql_store.get_task(task_id, default, setdefault)
         return self.mem_store.get_task(task_id, default, setdefault)
 
     def persist_task(self, task):
+        curframe = inspect.currentframe()
+        calframe = inspect.getouterframes(curframe, 2)
+        logger.info("PERSIST TASK WAS CALLED BY {}".format(calframe[1][3]))
         self.sql_store.persist_task(task)
         return self.mem_store.persist_task(task)
 
     def inactivate_tasks(self, delete_tasks):
+        curframe = inspect.currentframe()
+        calframe = inspect.getouterframes(curframe, 2)
+        logger.info("INACTICATE TASK WAS CALLED BY {}".format(calframe[1][3]))
         self.sql_store.inactivate_tasks(delete_tasks)
         return self.mem_store.inactivate_tasks(delete_tasks)
 

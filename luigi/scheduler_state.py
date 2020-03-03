@@ -276,8 +276,9 @@ class SchedulerState(object):
         for task in self.get_active_tasks():
             if remove_stakeholders:
                 task.stakeholders.difference_update(workers)
-            task.workers -= workers
-            self.persist_task(task)
+            if any(w in task.workers for w in workers):
+                task.workers -= workers
+                self.persist_task(task)
 
     def disable_workers(self, worker_ids):
         self.remove_workers_from_tasks(worker_ids, remove_stakeholders=False)

@@ -1076,6 +1076,15 @@ class Scheduler(object):
         else:
             reply['task_id'] = None
 
+        # every 1000ish calls, make sure we sync the DB with our state in memory
+        if self._config.use_sql_state and int(time.time() * 1000) % 1000 == 0:
+            current_state = self._state.get_active_tasks()
+            self._state._sync_mem_with_db()
+            new_state = self._state.get_active_tasks()
+            logger.info("PULLED STATE FROM DB")
+            logger.info("OLD - NEW = {}".format(set(current_state).difference(set(old_state))))
+            logger.info("NEW - OLD = {}".format(set(old_state).difference(set(current_state))))
+
         return reply
 
     @rpc_method(attempts=1)

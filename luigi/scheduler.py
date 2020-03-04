@@ -462,7 +462,7 @@ class Scheduler(object):
         from luigi import scheduler_state  # import here since it needs `Worker` from this file
 
         if self._config.use_sql_state:
-            self._state = scheduler_state.SqlSchedulerState(self._config.sql_target)
+            self._state = scheduler_state.HybridSchedulerState(self._config.sql_target)
         else:
             self._state = scheduler_state.SimpleSchedulerState(self._config.state_path)
 
@@ -1077,13 +1077,13 @@ class Scheduler(object):
             reply['task_id'] = None
 
         # every 1000ish calls, make sure we sync the DB with our state in memory
-        # if self._config.use_sql_state and int(time.time() * 1000) % 5 == 0:
-        #     current_state = self._state.get_active_tasks()
-        #     self._state._sync_mem_with_db()
-        #     new_state = self._state.get_active_tasks()
-        #     logger.info("PULLED STATE FROM DB")
-        #     logger.info("OLD: {}".format(list(current_state)))
-        #     logger.info("NEW: {}".format(list(new_state)))
+        if self._config.use_sql_state and int(time.time() * 1000) % 5 == 0:
+            current_state = self._state.get_active_tasks()
+            self._state._sync_mem_with_db()
+            new_state = self._state.get_active_tasks()
+            logger.info("PULLED STATE FROM DB")
+            logger.info("OLD LENGTH: {}".format(len(list(current_state))))
+            logger.info("NEW LENGTH: {}".format(len(list(new_state))))
 
         return reply
 

@@ -441,6 +441,9 @@ class SimpleSchedulerState(SchedulerState):
         self._tasks, self._active_workers = state[:2]
         if len(state) >= 3:
             self._task_batchers = state[2]
+        self._status_tasks = collections.defaultdict(dict)
+        for task in six.itervalues(self._tasks):
+            self._status_tasks[task.status][task.id] = task
 
     def dump(self):
         try:
@@ -463,9 +466,6 @@ class SimpleSchedulerState(SchedulerState):
                 return
 
             self.set_state(state)
-            self._status_tasks = collections.defaultdict(dict)
-            for task in six.itervalues(self._tasks):
-                self._status_tasks[task.status][task.id] = task
         else:
             logger.info("No prior state file exists at %s. Starting with empty state", self._state_path)
 
@@ -530,7 +530,7 @@ class SimpleSchedulerState(SchedulerState):
             self._metrics_collector.handle_task_failed(task)
 
 
-class HybridSchedulerState(SchedulerState):
+class HybridSchedulerState(SimpleSchedulerState):
     """
     Keeps an in-memory task state for fast access, but also persists all updates to DB
     This is used for when the scheduler starts up -> gets state from DB
@@ -540,59 +540,31 @@ class HybridSchedulerState(SchedulerState):
     """
     def __init__(self, mysql_target):
         self.sql_store = SqlSchedulerState(mysql_target) # uses real SQL target, that's where we persist
-        self.mem_store = SimpleSchedulerState("/tmp/") # path doesn't matter since we don't use it
+        super(HybridSchedulerState, self).__init__("/tmp/") # state path doesn't matter, it's unused
 
     def _sync_mem_with_db(self):
         # doesn't do anything intelligent; just overwrites mem_store with data from sql_store
         task_state = {task.id: task for task in self.sql_store.get_active_tasks()}
-        self.mem_store.set_state([task_state, {}])
+        super(HybridSchedulerState, self).set_state([task_state, self._active_workers])
 
     def dump(self):
-        return self.sql_store.dump()
+        pass # always persisted to the SQL state
 
     def load(self):
         self.sql_store.load()
         self._sync_mem_with_db()
 
-    def get_active_tasks(self):
-        return self.mem_store.get_active_tasks()
-
-    def get_active_tasks_by_status(self, *statuses):
-        return self.mem_store.get_active_tasks_by_status(*statuses)
-
-    def set_batcher(self, worker_id, family, batcher_args, max_batch_size):
-        return self.mem_store.set_batcher(worker_id, family, batcher_args, max_batch_size)
-
-    def get_batcher(self, worker_id, family):
-        return self.mem_store.get_batcher(worker_id, family)
-
     def get_task(self, task_id, default=None, setdefault=None):
+        # only need to propagate this down to SQL if we're setting the task value
         if setdefault:
-            # only need to propagate this down to SQL if we're setting the task value
             self.sql_store.get_task(task_id, default, setdefault)
-        return self.mem_store.get_task(task_id, default, setdefault)
+        return super(HybridSchedulerState, self).get_task(task_id, default, setdefault)
 
     def persist_task(self, task):
         self.sql_store.persist_task(task)
-        return self.mem_store.persist_task(task)
+        return super(HybridSchedulerState, self).persist_task(task)
 
     def inactivate_tasks(self, delete_tasks):
         self.sql_store.inactivate_tasks(delete_tasks)
-        return self.mem_store.inactivate_tasks(delete_tasks)
+        return super(HybridSchedulerState, self).inactivate_tasks(delete_tasks)
 
-    def get_active_workers(self, last_active_lt=None, last_get_work_gt=None):
-        return self.mem_store.get_active_workers(last_active_lt, last_get_work_gt)
-
-    def get_worker(self, worker_id):
-        return self.mem_store.get_worker(worker_id)
-
-    def inactivate_workers(self, delete_workers, remove_stakeholders=True):
-        return self.mem_store.inactivate_workers(delete_workers, remove_stakeholders)
-
-    def update_metrics(self, task, config):
-        if task.status == DISABLED:
-            self._metrics_collector.handle_task_disabled(task, config)
-        elif task.status == DONE:
-            self._metrics_collector.handle_task_done(task)
-        elif task.status == FAILED:
-            self._metrics_collector.handle_task_failed(task)

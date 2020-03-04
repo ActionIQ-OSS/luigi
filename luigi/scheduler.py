@@ -867,7 +867,6 @@ class Scheduler(object):
 
         :return:
         """
-
         return task.priority, -task.time
 
     def _schedulable(self, task):

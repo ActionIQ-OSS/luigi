@@ -3,17 +3,22 @@ import mock
 import time
 from helpers import unittest
 from nose.plugins.attrib import attr
+
 import luigi.notifications
+from luigi.scheduler_state import DBTask
 from luigi.scheduler import DISABLED, DONE, FAILED, PENDING, \
     UNKNOWN, RUNNING, BATCH_RUNNING, UPSTREAM_RUNNING, Scheduler
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 luigi.notifications.DEBUG = True
 WORKER = 'myworker'
 
-class SchedulerApiTest(unittest.TestCase):
+class SqlStateStoreTest(unittest.TestCase):
 
     def setUp(self):
-        super(SchedulerApiTest, self).setUp()
+        super(SqlStateStoreTest, self).setUp()
         conf = self.get_scheduler_config()
         self.sch = Scheduler(**conf)
         self.time = time.time
@@ -30,16 +35,21 @@ class SchedulerApiTest(unittest.TestCase):
             'disable_hard_timeout': 60 * 60,
             'stable_done_cooldown_secs': 0,
             'use_sql_state': True,
-            'sql_target': 'sqlite:///:memory:'
+            'sql_target': 'sqlite:////tmp/test.db'
         }
 
     def tearDown(self):
-        super(SchedulerApiTest, self).tearDown()
-        if time.time != self.time:
-            time.time = self.time
+        super(SqlStateStoreTest, self).tearDown()
+        engine = create_engine('sqlite:////tmp/test.db')
+        DBTask.__table__.drop(engine)
 
-    def setTime(self, t):
-        time.time = lambda: t
+    def count_rows_in_db(self, row_id):
+        engine = create_engine('sqlite:////tmp/test.db')
+        session_generator = sessionmaker(bind=engine)
+        session = session_generator()
+        db_result = session.query(DBTask).filter(DBTask.task_id == row_id).all()
+        session.close()
+        return len(db_result)
 
     def test_simple_dag(self):
         self.sch.add_task(worker=WORKER, task_id='B', deps=('A',))
@@ -67,13 +77,27 @@ class SchedulerApiTest(unittest.TestCase):
         self.assertEqual(set(str(i) for i in old_state), set(str(i) for i in new_state))
 
     def test_persist_task_hits_db(self):
-        pass
+        self.assertEqual(self.count_rows_in_db(row_id='A'), 0)
+        task = self.sch._make_task(task_id='A', status=PENDING, deps=[])
+        self.sch._state.persist_task(task)
+        self.assertEqual(self.count_rows_in_db(row_id='A'), 1)
 
     def test_inactivate_task_hits_db(self):
-        pass
+        self.assertEqual(self.count_rows_in_db(row_id='A'), 0)
+        task = self.sch._make_task(task_id='A', status=PENDING, deps=[])
+        self.sch._state.persist_task(task)
+        self.assertEqual(self.count_rows_in_db(row_id='A'), 1)
+        self.sch._state.inactivate_tasks(['A'])
+        self.assertEqual(self.count_rows_in_db(row_id='A'), 0)
 
     def test_get_task_with_setdefault_hits_db(self):
-        pass
+        self.assertEqual(self.count_rows_in_db(row_id='A'), 0)
+        task = self.sch._make_task(task_id='A', status=PENDING, deps=[])
+        self.sch._state.get_task('A', setdefault=task)
+        self.assertEqual(self.count_rows_in_db(row_id='A'), 1)
 
     def test_get_task_without_setdefault_skips_db(self):
-        pass
+        self.assertEqual(self.count_rows_in_db(row_id='A'), 0)
+        task = self.sch._make_task(task_id='A', status=PENDING, deps=[])
+        self.sch._state.get_task('A', default=None)
+        self.assertEqual(self.count_rows_in_db(row_id='A'), 0)

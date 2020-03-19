@@ -1078,12 +1078,19 @@ class Scheduler(object):
             reply['task_id'] = None
 
         # every 1000ish calls, make sure we sync the DB with our state in memory
-        if self._config.use_sql_state and int(time.time() * 1000) % 100 == 0:
+        if self._config.use_sql_state and int(time.time() * 1000) % 1000 == 0:
             logger.info("Syncing DB state store into memory!")
             old_state_size = self._state.get_active_task_count_for_status(None)
             self._state._sync_mem_with_db()
             new_state_size = self._state.get_active_task_count_for_status(None)
-            logger.info("Old size: {}, new size: {}".format(old_state_size, new_state_size))
+            if (old_state_size != new_state_size):
+                logger.warn(
+                    "Luigi mem and DB were out of sync! ",
+                    "Task state from DB was used to overwrite the mem state. ",
+                    "Old tasks: {}, new tasks: {}".format(old_state_size, new_state_size)
+                )
+            else:
+                logger.info("Sync OK, old size == new size == {}".format(new_state_size))
 
         return reply
 

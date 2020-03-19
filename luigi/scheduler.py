@@ -462,10 +462,10 @@ class Scheduler(object):
         from luigi import scheduler_state  # import here since it needs `Worker` from this file
 
         if self._config.use_sql_state:
-            logger.warn("Using SQL store!")
+            logger.info("Using SQL store to persist task state!")
             self._state = scheduler_state.HybridSchedulerState(self._config.sql_target)
         else:
-            logger.warn("NOT using SQL store!")
+            logger.info("NOT using SQL store to persist task state!")
             self._state = scheduler_state.SimpleSchedulerState(self._config.state_path)
 
         if task_history_impl:
@@ -512,16 +512,16 @@ class Scheduler(object):
 
     @rpc_method()
     def prune(self):
-        logger.info("Starting pruning of task graph")
+        logger.debug("Starting pruning of task graph")
         self._prune_workers()
-        logger.info("Just pruned workers")
+        logger.debug("Just pruned workers")
         self._prune_tasks()
-        logger.info("Just pruned tasks")
+        logger.debug("Just pruned tasks")
         self._prune_emails()
-        logger.info("Just pruned emails")
+        logger.debug("Just pruned emails")
         self._prune_short_lived_stakeholders()
-        logger.info("Just pruned short lived stakeholders")
-        logger.info("Done pruning task graph")
+        logger.debug("Just pruned short lived stakeholders")
+        logger.debug("Done pruning task graph")
 
     def _prune_workers(self):
         remove_workers = []
@@ -1253,8 +1253,6 @@ class Scheduler(object):
             pre_count = self._state.get_active_task_count_for_status(status)
             if limit and pre_count > count_limit:
                 return {'num_tasks': -1 if upstream_status else pre_count}
-
-        # self.prune()
 
         result = {}
         upstream_status_table = {}  # used to memoize upstream status

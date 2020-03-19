@@ -1085,8 +1085,8 @@ class Scheduler(object):
             new_state_size = self._state.get_active_task_count_for_status(None)
             if (old_state_size != new_state_size):
                 logger.warn(
-                    "Luigi mem and DB were out of sync! ",
-                    "Task state from DB was used to overwrite the mem state. ",
+                    "Luigi mem and DB were out of sync! " \
+                    "Task state from DB was used to overwrite the mem state. " \
                     "Old tasks: {}, new tasks: {}".format(old_state_size, new_state_size)
                 )
             else:

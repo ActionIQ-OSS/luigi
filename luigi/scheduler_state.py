@@ -382,6 +382,7 @@ class SqlSchedulerState(SchedulerState):
             session.add(new_task)
         session.commit()
         session.close()
+
         return task
 
     def inactivate_tasks(self, delete_tasks):
@@ -561,6 +562,23 @@ class HybridSchedulerState(SimpleSchedulerState):
         return super(HybridSchedulerState, self).get_task(task_id, default, setdefault)
 
     def persist_task(self, task):
+
+        # every 1000ish persists, make sure we sync the DB with our state in memory
+        if int(time.time() * 1000) % 1000 == 0:
+            logger.info("Syncing DB state store into memory...")
+            old_state_size = self.get_active_task_count_for_status(None)
+            self._sync_mem_with_db()
+            new_state_size = self.get_active_task_count_for_status(None)
+            if (old_state_size != new_state_size):
+                # Can alert on this happening if we want to
+                logger.warn(
+                    "Luigi mem and DB were out of sync! " \
+                    "Task state from DB was used to overwrite the mem state. " \
+                    "Old tasks: {}, new tasks: {}".format(old_state_size, new_state_size)
+                )
+            else:
+                logger.info("Sync OK, old size == new size == {}".format(new_state_size))
+
         self.sql_store.persist_task(task)
         return super(HybridSchedulerState, self).persist_task(task)
 

@@ -747,7 +747,7 @@ class Scheduler(object):
             for task in self._state.get_active_tasks():
                 all_stakeholders.update(task.stakeholders)
                 # Tasks that are not done or disabled are useful
-                if task.status != DONE and task.status != DISABLED:
+                if task.status != DONE and task.status != DISABLED and task.status != UNKNOWN:
                     useful_stakeholders.update(task.stakeholders)
             remove_workers = all_stakeholders.difference(useful_stakeholders)
             # Don't prune an active worker

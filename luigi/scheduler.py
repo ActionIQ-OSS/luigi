@@ -630,6 +630,11 @@ class SimpleTaskState(object):
                 logger.debug("Task %r has no stakeholders anymore -> might remove "
                              "task in %s seconds", task.id, config.disabled_remove_delay)
                 task.remove = time.time() + config.disabled_remove_delay
+            elif (task.status == UNKNOWN):
+                # Use the same timeout as disabled since it is more or less disabled
+                logger.debug("Task %r has no stakeholders anymore -> might remove "
+                             "task in %s seconds", task.id, config.disabled_remove_delay)
+                task.remove = time.time() + config.disabled_remove_delay
 
         # Re-enable task after the disable time expires
         if task.status == DISABLED and task.scheduler_disable_time is not None:
@@ -913,8 +918,9 @@ class Scheduler(object):
 
         task_is_not_running = task.status not in (RUNNING, BATCH_RUNNING)
         task_started_a_run = status in (DONE, FAILED, RUNNING)
-        running_on_this_worker = task.worker_running == worker_id
-        if task_is_not_running or (task_started_a_run and running_on_this_worker) or new_deps:
+        active_workers = [str(my_worker) for my_worker in self._state.get_active_workers()]
+        running_on_this_worker_or_dead_worker = task.worker_running == worker_id or task.worker_running not in active_workers
+        if task_is_not_running or (task_started_a_run and running_on_this_worker_or_dead_worker) or new_deps:
             # don't allow re-scheduling of task while it is running, it must either fail or succeed on the worker actually running it
             if status != task.status or status == PENDING:
                 # Update the DB only if there was a acctual change, to prevent noise.
